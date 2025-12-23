@@ -13,6 +13,16 @@ import test_engine  # Backend logic
 # --- Page Config ---
 st.set_page_config(page_title="Tishas PO Extractor", layout="wide", page_icon="📄")
 
+# --- HIDE STREAMLIT FOOTER ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # --- Session State Initialization ---
 if "processed_docs" not in st.session_state:
     st.session_state["processed_docs"] = []

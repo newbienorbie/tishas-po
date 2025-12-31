@@ -1,9 +1,34 @@
-/po_storage
-api_key.txt
-check_ai.py
-gcs_key.json
-Retailer List - Details.csv
-seed_retailers.py
-server.py
-/PO_Samples
-/config
+# General
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.env
+backend/.env
+backend/.venv
+backend/__pycache__
+
+# Node/Next.js
+node_modules/
+.next/
+frontend/node_modules/
+frontend/.next/
+
+# User Data
+po_storage/
+*.pdf
+*.db
+
+# Maintenance Scripts (Local only)
+backend/drop_columns.py
+backend/rename_table.py
+backend/migrate_db.py
+backend/import_retailers.py
+backend/db_connection.py
+backend/setup_neon_db.py
+DEPLOYMENT_GUIDE.md
+secrets.toml

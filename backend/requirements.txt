@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-dotenv
+pandas
+psycopg2-binary
+sqlalchemy
+google-generativeai
+google-cloud-storage
+pdf2image
+pillow
+pdfplumber
+python-multipart
+requests

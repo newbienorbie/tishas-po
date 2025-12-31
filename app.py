@@ -245,7 +245,7 @@ def render_po_card(doc, index):
 
 
 # --- MAIN UI ---
-st.title("📄 Tishas PO Extraction Engine")
+st.title("Tisha's PO Extraction")
 
 # --- CSS STYLING ---
 st.markdown(

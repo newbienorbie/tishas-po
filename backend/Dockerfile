@@ -1,8 +1,7 @@
 # Use official Python runtime as a parent image
 FROM python:3.11-slim
 
-# Install system dependencies (needed for pdf2image/poppler)
-# poppler-utils is required for pdf2image processing
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     poppler-utils \
     libpq-dev \
@@ -12,20 +11,18 @@ RUN apt-get update && apt-get install -y \
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt . as requirements.txt
+# Copy the requirements file (Fixed syntax)
+COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
+# Install packages
 RUN pip install --no-cache-dir -r requirements.txt
-# Explicitly install uvicorn and gunicorn if not in requirements
 RUN pip install uvicorn gunicorn
 
-# Copy the current directory contents into the container at /app
+# Copy the rest of the code
 COPY . .
 
-# Expose port 8000
-EXPOSE 8000
+# Render uses port 10000 by default
+EXPOSE 10000
 
-# Run the application
-# Using gunicorn with uvicorn workers for production
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run using the PORT environment variable provided by Render
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]

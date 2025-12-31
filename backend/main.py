@@ -133,10 +133,13 @@ async def upload_file(file: UploadFile = File(...)):
         
         return {"status": "success", "documents": validated_results}
 
-    except HTTPException:
+    except HTTPException as he:
+        print(f"HTTP Exception: {he.status_code} - {he.detail}")
         raise
     except Exception as e:
         print(f"Error processing file: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(temp_filename):

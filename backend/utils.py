@@ -991,7 +991,8 @@ def process_pdf(file_path, file_hash, source_filename):
             merge_key = f"NO_PO_{len(merged_docs_map)+1}|{retailer}"
         
         if merge_key in merged_docs_map:
-            # Merge items for same PO + Retailer combo
+            # ONLY merge if it's the EXACT same key (same PO number + same retailer)
+            # This handles multi-page POs, NOT different POs from same retailer
             target = merged_docs_map[merge_key]
             if doc.get("items"):
                 target["items"].extend(doc["items"])
@@ -999,8 +1000,9 @@ def process_pdf(file_path, file_hash, source_filename):
             for k, v in doc.items():
                 if not target.get(k) and v:
                     target[k] = v
-            print(f"  -> Merged into existing PO: {merge_key}")
+            print(f"  -> Merged continuation page into: {merge_key}")
         else:
+            # New unique PO
             merged_docs_map[merge_key] = doc
             print(f"  -> Created new PO entry: {merge_key}")
 

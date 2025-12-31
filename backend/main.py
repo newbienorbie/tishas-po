@@ -17,6 +17,7 @@ app = FastAPI(title="Tishas PO Extractor API")
 origins = [
     "http://localhost:3000",
     "http://localhost:8000",
+    "https://tishas-po.vercel.app"
 ]
 
 # Add production domains from env

@@ -13,11 +13,18 @@ export async function uploadFiles(files: File[]): Promise<PODocument[]> {
         const formData = new FormData();
         formData.append('file', file);
 
+        // Create AbortController with 5 minute timeout for large files
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
+
         try {
             const response = await fetch(`${API_BASE_URL}/upload`, {
                 method: 'POST',
                 body: formData,
+                signal: controller.signal,
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 // Try to extract error message from response
@@ -29,7 +36,6 @@ export async function uploadFiles(files: File[]): Promise<PODocument[]> {
                     throw new Error(`Upload failed for ${file.name}. Make sure it's the correct file.`);
                 }
             }
-
             const data: UploadResponse = await response.json();
             if (data.documents) {
                 allDocs.push(...data.documents);

@@ -784,7 +784,15 @@ def parse_with_gemini(data, extra_instruction=""):
         - 'po_number': The unique PO number.
         - 'po_date': Date of the PO.
         - 'delivery_date': Expected delivery date (or Ship Date).
-        - 'expiry_date': Use specific rules: MYDIN="Deliver By", LOTUS/CHECKERS="Cancel Date", Others="Expiry/Best Before". Return null if not found.
+        - 'expiry_date': CRITICAL - Use retailer-specific field mapping:
+            * Checkers/CS Grocer/Lotus/Urban Marketplace: "Cancel date"
+            * DADE/Giant/Global Food Merchant/TFP/Tishas Food Manufacturing: "Delivery date" or "Final delivery date" or "Expected delivery date"
+            * Kenwingston/Pasaraya Darussalam/PKPS/St Rosyam/Tunas Manja: "Expiry"
+            * MG Coop Mart/Pasaraya Irsyad Balok: Return null (Not Available)
+            * MYDIN: "Deliver by"
+            * SAM'S Groceria: "Delivery by"
+            * Super Seven: "PO valid for 2 weeks from date of issue" (calculate expiry as PO date + 14 days)
+            * If field not found, return null
         - 'buyer_name': The "Bill To" entity.
         - 'branch_name': The "Ship To"/"Deliver To" specific store name.
         - 'items': ALL line items from the table.
@@ -902,17 +910,19 @@ def process_pdf(file_path, file_hash, source_filename):
                 # Identify Retailer for this specific page
                 t_page = text.upper()
                 curr_page_retailer = "UNKNOWN"
-                if "SELECTION" in t_page: curr_page_retailer = "SELECTION_GROCERIES"
+                # Check specific retailers first, then generic ones
+                if "MYDIN" in t_page: curr_page_retailer = "MYDIN"
+                elif "SELECTION" in t_page: curr_page_retailer = "SELECTION_GROCERIES"
                 elif "PASARAYA" in t_page or "ANGKASA" in t_page: curr_page_retailer = "PASARAYA_ANGKASA"
                 elif "TUNAS" in t_page or "MANJA" in t_page: curr_page_retailer = "TUNAS_MANJA"
                 elif "ROSYAM" in t_page: curr_page_retailer = "ST_ROSYAM"
-                elif "TFP" in t_page: curr_page_retailer = "TFP_GROUP"
                 elif "GLOBAL JAYA" in t_page: curr_page_retailer = "GLOBAL_JAYA"
-                elif "GCH" in t_page: curr_page_retailer = "GIANT"
+                elif "GCH" in t_page or "GIANT" in t_page: curr_page_retailer = "GIANT"
                 elif "CS GROCER" in t_page: curr_page_retailer = "CS_GROCER"
                 elif "SUPER SEVEN" in t_page: curr_page_retailer = "SUPER_SEVEN"
                 elif "SAM'S GROCERIA" in t_page or "CHECKERS" in t_page: curr_page_retailer = "CHECKERS_SAM"
-                elif "LOTUSS" in t_page: curr_page_retailer = "LOTUS"
+                elif "LOTUSS" in t_page or "LOTUS" in t_page: curr_page_retailer = "LOTUS"
+                elif "TFP" in t_page: curr_page_retailer = "TFP_GROUP"
                 
                 print(f"Extracting Page {page_num}/{total_pages} (Detected: {curr_page_retailer})...")
                 

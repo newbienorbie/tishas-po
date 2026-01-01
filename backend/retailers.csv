@@ -1,66 +1,66 @@
 id,debtor_code,retailers_group_name,retailers_name,company_name,branch,branch_code,business_registration_no,billing_address,delivery_address,credit_terms,sales_agent,bill_to,created_at,updated_at
-1,300-MH15,MYDIN,MYDIN MOHAMED HOLDINGS SDN BHD,MYDIN MOHAMED HOLDINGS SDN BHD,MYDIN PUTRAJAYA,1024,199101011136,NULL,"Mydin Putrajaya Bazaar No. 40-54, Jalan Diplomatik Presint 15, 62050 Putrajaya,Putrajaya,Malaysia",Net 60 days,NULL,Manufacturing,,
-2,300-M024,MYDIN,TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,MYDIN TAMAN KINRARA,5532,200601008765,NULL,"Mydin Mart Taman Kinrara No. 14 16, 18&20, Jln TK 4/5, Tmn Kinrara 4, 47100 Puchong, Selangor, Malaysia",Net 60 days,NULL,Manufacturing,,
-3,300-M040,MYDIN,MYDIN TRI SHAAS SDN BHD,MYDIN TRI SHAAS SDN BHD,MyDin Seksyen 13 Shah Alam,5539,200601008765,,"Mydin Mart Seksyen 13 Unit 9 Lot 1715, No.7,Jalan Rugbi Seksyen 13,,40100 Shah Alam,Selangor,Malaysia |",Net 60 days,CEN-001 AZIZ,Manufacturing,,
-4,300-MH23,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,MyDin Tengku Kelana Emporium Klang,1010,199101011136,,"Mydin Tengku Kelana Emporium No. 111 Blok 1 Jln.Tengku Kelana,41000 Klang,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
-5,300-MT02,MYDIN,MYDIN TRI SHAAS SDN BHD,MYDIN TRI SHAAS SDN BHD,Mydin Shah Alam Jalan Pinang G,5504,200601008765,,"Mydin Mart Shah Alam No.4-16 Jalan Pinang G 18/G,40200 Shah Alam,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
-6,300-M022,MYDIN,MYDIN TRI SHAAS SDN BHD,MYDIN TRI SHAAS SDN BHD,Mydin Taman Bukit Kuda Klang,5531,200601008765,,"Mydin Mart Bukit Kuda No 36 & 38 Jln Bukit Kuda I/KUI Taman Bukit Kuda,41300 Klang,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
-7,300-M025,MYDIN,TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,Mydin Mart Desa Latania,5533,200601008765,,"Mydin Mart Desa Latania No. 16 & 18 JIn Nagasari E36/E Desa Latania,Seksyen 36,40460 Shah
+1,300-MH15,MYDIN,MYDIN MOHAMED HOLDINGS SDN BHD,MYDIN MOHAMED HOLDINGS SDN BHD,MYDIN PUTRAJAYA,1024.0,199101011136,,"Mydin Putrajaya Bazaar No. 40-54, Jalan Diplomatik Presint 15, 62050 Putrajaya,Putrajaya,Malaysia",Net 60 days,,Manufacturing,,
+2,300-M024,MYDIN,MYDIN TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,MYDIN TAMAN KINRARA,5532.0,200601008765,,"Mydin Mart Taman Kinrara No. 14 16, 18&20, Jln TK 4/5, Tmn Kinrara 4, 47100 Puchong, Selangor, Malaysia",Net 60 days,,Manufacturing,,
+3,300-M040,MYDIN,MYDIN TRI SHAAS SDN BHD,MYDIN TRI SHAAS SDN BHD,MyDin Seksyen 13 Shah Alam,5539.0,200601008765,,"Mydin Mart Seksyen 13 Unit 9 Lot 1715, No.7,Jalan Rugbi Seksyen 13,,40100 Shah Alam,Selangor,Malaysia |",Net 60 days,CEN-001 AZIZ,Manufacturing,,
+4,300-MH23,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,MyDin Tengku Kelana Emporium Klang,1010.0,199101011136,,"Mydin Tengku Kelana Emporium No. 111 Blok 1 Jln.Tengku Kelana,41000 Klang,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
+5,300-MT02,MYDIN,MYDIN TRI SHAAS SDN BHD,MYDIN TRI SHAAS SDN BHD,Mydin Shah Alam Jalan Pinang G,5504.0,200601008765,,"Mydin Mart Shah Alam No.4-16 Jalan Pinang G 18/G,40200 Shah Alam,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
+6,300-M022,MYDIN,MYDIN TRI SHAAS SDN BHD,MYDIN TRI SHAAS SDN BHD,Mydin Taman Bukit Kuda Klang,5531.0,200601008765,,"Mydin Mart Bukit Kuda No 36 & 38 Jln Bukit Kuda I/KUI Taman Bukit Kuda,41300 Klang,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
+7,300-M025,MYDIN,MYDIN TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,Mydin Mart Desa Latania,5533.0,200601008765,,"Mydin Mart Desa Latania No. 16 & 18 JIn Nagasari E36/E Desa Latania,Seksyen 36,40460 Shah
 Alam,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
-8,300-MH17,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Semenyih Hypermarket,1051,199101011136,,"Mydin Semenyih Hypermarket Lot 21452 Jalan Anggerik Perdana 1 Taman Anggerik Perdana,43500
+8,300-MH17,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Semenyih Hypermarket,1051.0,199101011136,,"Mydin Semenyih Hypermarket Lot 21452 Jalan Anggerik Perdana 1 Taman Anggerik Perdana,43500
 Semenyih,Selangor,Malaysia",Net 60 days,CEN-002 NAZH,Manufacturing,,
-9,300-MH18,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Senawang Hypermarket,1063,199101011136,,"Mydin Senawang Hypermarket No 110 Jalan BPS 7, Bandar Prima Senawang,,,70450 Seremban,Negeri
+9,300-MH18,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Senawang Hypermarket,1063.0,199101011136,,"Mydin Senawang Hypermarket No 110 Jalan BPS 7, Bandar Prima Senawang,,,70450 Seremban,Negeri
 Sembilan,Malaysia",Net 60 days,CEN-002 NAZH,Manufacturing,,
-10,300-MH19,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Seremban 2 Hypermarket,1049,199101011136,,"Mydin Seremban 2 Hypermarket Lot 31156 Persiaran S2 B7 Seremban 2,70300 Seremban,Negeri
+10,300-MH19,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Seremban 2 Hypermarket,1049.0,199101011136,,"Mydin Seremban 2 Hypermarket Lot 31156 Persiaran S2 B7 Seremban 2,70300 Seremban,Negeri
 Sembilan,Malaysia",Net 60 days,CEN-002 NAZH,Manufacturing,,
-11,300-M041,MYDIN,TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,Mydin Mart Olak Lempit,5540,200601008765,,"Mydin Mart Olak Lempit 16 18 & 20-G Jalan Camar 22,Taman Cenderawasih , kampung Olak L,42700
+11,300-M041,MYDIN,MYDIN TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,Mydin Mart Olak Lempit,5540.0,200601008765,,"Mydin Mart Olak Lempit 16 18 & 20-G Jalan Camar 22,Taman Cenderawasih , kampung Olak L,42700
 Banting,Selangor,Malaysia",Net 60 days,CEN-002 NAZH,Manufacturing,,
-12,300-M021,MYDIN,TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,Mydin Mart Balakong Jaya,5530,200601008765,,"Mydin Mart Balakong Jaya No 9 11 13 & 15 Jalan Balakong Jaya 2 Taman Balakong Jaya,43300 Seri
+12,300-M021,MYDIN,MYDIN TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,Mydin Mart Balakong Jaya,5530.0,200601008765,,"Mydin Mart Balakong Jaya No 9 11 13 & 15 Jalan Balakong Jaya 2 Taman Balakong Jaya,43300 Seri
 Kembangan Kajang,Selangor,Malaysia",Net 60 days,CEN-002 NAZH,Manufacturing,,
-13,300-MH20,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Subang Jaya Hypermarket,1019,199101011136,,"Mydin Subang Jaya Hypermarket Lot 675 & 676 Persiaran Subang Permai USJ 1,47500 Subang
+13,300-MH20,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Subang Jaya Hypermarket,1019.0,199101011136,,"Mydin Subang Jaya Hypermarket Lot 675 & 676 Persiaran Subang Permai USJ 1,47500 Subang
 Jaya,Selangor,Malaysia",Net 60 days,CEN-003 THUR,Manufacturing,,
-14,300-MH16,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Selayang Emporium,1001,199101011136,,"Mydin Selayang Emporium No.10-16 Jalan SU/12,Taman Selayang Utama,,68100 Batu
+14,300-MH16,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Selayang Emporium,1001.0,199101011136,,"Mydin Selayang Emporium No.10-16 Jalan SU/12,Taman Selayang Utama,,68100 Batu
 Caves,Selangor,Malaysia",Net 60 days,CEN-003 THUR,Manufacturing,,
-15,300-MH06,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Klang Emporium Plaza MPK,1004,199101011136,,"Mydin Klang Emporium Plaza MPK Jln Pos Baru ,41000 Klang,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
-16,300-MI05,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5526,,"258 PENANG ROAD,
+15,300-MH06,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Klang Emporium Plaza MPK,1004.0,199101011136,,"Mydin Klang Emporium Plaza MPK Jln Pos Baru ,41000 Klang,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
+16,300-MI05,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5526.0,,"258 PENANG ROAD,
 GEORGTOWN, PENANG","MYDIN WHOSALE HYPERMARKET TAMAN BATIK
 NO.1, JLN BATIK 2/2A, TMN BATIK,
 SUNGAI PETANI KEDAH.",Net 60 days,OFF-001 OFFI,Manufacturing,,
-17,300-MH04,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Jasin Hypermarket,1046,199101011136,,"Mydin Jasin Hypermarket PT 8537 Seksyen 1 Bandar Jasin Bestari ,77200 Bemban,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-18,300-MH11,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Meru Raya Hypermarket,1037,199101011136,,"Mydin Meru Raya Hypermarket PT229142 Jalan Meru Bestari 2 Bandar Meru Raya ,30020 Ipoh,Perak,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-19,300-MH02,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Bukit Mertajam Hypermarket,1058,199101011136,,"Mydin Bukit Mertajam Hypermarket Lot No. 3424 1619, 1511, 1186 & 85 Mukim 6,Jalan Baru,13700 Seberang
+17,300-MH04,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Jasin Hypermarket,1046.0,199101011136,,"Mydin Jasin Hypermarket PT 8537 Seksyen 1 Bandar Jasin Bestari ,77200 Bemban,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+18,300-MH11,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Meru Raya Hypermarket,1037.0,199101011136,,"Mydin Meru Raya Hypermarket PT229142 Jalan Meru Bestari 2 Bandar Meru Raya ,30020 Ipoh,Perak,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+19,300-MH02,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Bukit Mertajam Hypermarket,1058.0,199101011136,,"Mydin Bukit Mertajam Hypermarket Lot No. 3424 1619, 1511, 1186 & 85 Mukim 6,Jalan Baru,13700 Seberang
 Perai,Pulau Pinang,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-20,300-MI01,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5522,199501008060,,"Mydin Bertam Hypermarket No 2243 Jalan Tun Hamdan Syeikh Tahir Bandar Putra Bertam,13200 Kepala
+20,300-MI01,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5522.0,199501008060,,"Mydin Bertam Hypermarket No 2243 Jalan Tun Hamdan Syeikh Tahir Bandar Putra Bertam,13200 Kepala
 Batas,Pulau Pinang,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-21,300-MI04,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5507,199501008060,,"Mydin Taman Saga Hypermarket No.888 Jalan Alor Mengkudu ,05400 Alor Setar,Kedah,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-22,300-M042,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5538,199501008060,,"Mydin Kulim Hypermarket Jalan Cendana Taman Cendana PT 4957 ,09000 Kulim,Kedah,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-23,300-MH12,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Mutiara Rini Hypermarket,1069,199101011136,,"Mydin Mutiara Rini Hypermarket Lot PTD 181611 Mukim Pulai,,Daerah Johor Bharu,,81300 Johor
+21,300-MI04,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5507.0,199501008060,,"Mydin Taman Saga Hypermarket No.888 Jalan Alor Mengkudu ,05400 Alor Setar,Kedah,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+22,300-M042,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5538.0,199501008060,,"Mydin Kulim Hypermarket Jalan Cendana Taman Cendana PT 4957 ,09000 Kulim,Kedah,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+23,300-MH12,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Mutiara Rini Hypermarket,1069.0,199101011136,,"Mydin Mutiara Rini Hypermarket Lot PTD 181611 Mukim Pulai,,Daerah Johor Bharu,,81300 Johor
 Bharu,Johor,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-24,300-MH07,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Kuala Terengganu Hypermarket,1021,199101011136,,"Mydin Kuala Terengganu Hypermarket Lot 1547 & 1548 Jln. Sultan Mohamad ,21000 Kuala
+24,300-MH07,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Kuala Terengganu Hypermarket,1021.0,199101011136,,"Mydin Kuala Terengganu Hypermarket Lot 1547 & 1548 Jln. Sultan Mohamad ,21000 Kuala
 Terengganu,Terengganu,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-25,300-MI03,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5519,199501008060,,"Mydin Parit Buntar Hypermarket Lot 23252 Jalan Sekolah Kerian Sentral Mall,34200 Parit Buntar,Perak,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-26,300-MH09,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Kulai Utama Hypermarket,1035,199101011136,,"Mydin Kulai Utama Hypermarket Lot 1.18A Jalan Anggerik 8 Taman Kulai Utama,81000 Kulai,Johor,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-27,300-MH01,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Bazaar Anjung Nusajaya,1033,199101011136,,"Mydin Bazaar Anjung Nusajaya Lot 25 Anjung Neighbourhood Centre Nusajaya Johor Bharu,79250
+25,300-MI03,MYDIN,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD,MYDIN IMAN IKHLAS (M) SDN BHD @ TAMAN BATIK,5519.0,199501008060,,"Mydin Parit Buntar Hypermarket Lot 23252 Jalan Sekolah Kerian Sentral Mall,34200 Parit Buntar,Perak,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+26,300-MH09,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Kulai Utama Hypermarket,1035.0,199101011136,,"Mydin Kulai Utama Hypermarket Lot 1.18A Jalan Anggerik 8 Taman Kulai Utama,81000 Kulai,Johor,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+27,300-MH01,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Bazaar Anjung Nusajaya,1033.0,199101011136,,"Mydin Bazaar Anjung Nusajaya Lot 25 Anjung Neighbourhood Centre Nusajaya Johor Bharu,79250
 Nusajaya,Johor,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-28,300-MH21,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Taman Rinting Hypermarket,1107,199101011136,,"Mydin Taman Rinting Hypermarket Lot 92368 Jalan Rinting Mukim Plentong, Taman Rinting,81750
+28,300-MH21,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Taman Rinting Hypermarket,1107.0,199101011136,,"Mydin Taman Rinting Hypermarket Lot 92368 Jalan Rinting Mukim Plentong, Taman Rinting,81750
 Masai,Johor,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-29,300-MH24,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Tunjong Hypermarket,1079,199101011136,,"Mydin Tunjong Hypermarket Lot PT 666 Jalan Kuala Krai Bandar Baru Tunjong,16010 Kota
+29,300-MH24,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Tunjong Hypermarket,1079.0,199101011136,,"Mydin Tunjong Hypermarket Lot PT 666 Jalan Kuala Krai Bandar Baru Tunjong,16010 Kota
 Bharu,Kelantan,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-30,300-MH08,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Kubang Kerian Hypermarket,1030,199101011136,,"Mydin Kubang Kerian Hypermarket LOT 1724 SEKSYEN 14 JALAN RAJA PEREMPUAN,15200 Kota
+30,300-MH08,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Kubang Kerian Hypermarket,1030.0,199101011136,,"Mydin Kubang Kerian Hypermarket LOT 1724 SEKSYEN 14 JALAN RAJA PEREMPUAN,15200 Kota
 Bharu,Kelantan,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-31,300-MH28,MYDIN,MYDIN MELAKA BAZAAR SDN BHD,MYDIN MELAKA BAZAAR SDN BHD,Mydin Melaka Bazaar,1990,200501011305,,"Mydin Melaka Bazaar 1st Floor Bazaar Melaka Sentral Jalan Tun Abdul Razak ,75400 Peringgit,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-32,300-MH27,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Melaka Hypermarket,1025,199101011136,,"Mydin Melaka Hypermarket Lot 15060 15061,15062 Mukim Bukit Katil,Melaka Tengah,75450 Ayer
+31,300-MH28,MYDIN,MYDIN MELAKA BAZAAR SDN BHD,MYDIN MELAKA BAZAAR SDN BHD,Mydin Melaka Bazaar,1990.0,200501011305,,"Mydin Melaka Bazaar 1st Floor Bazaar Melaka Sentral Jalan Tun Abdul Razak ,75400 Peringgit,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+32,300-MH27,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Melaka Hypermarket,1025.0,199101011136,,"Mydin Melaka Hypermarket Lot 15060 15061,15062 Mukim Bukit Katil,Melaka Tengah,75450 Ayer
 Keroh,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-33,300-MH14,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Pulau Sebang Hypermarket,1067,199101011136,,"Mydin Pulau Sebang Hypermarket PT 20 & 2053 Jalan Besar Pulau Sebang,78000 Alor Gajah,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-34,300-MH05,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Jengka Hypermarket,1077,199101011136,,"Mydin Jengka Hypermarket Lot 29972 Jalan Lintasan Semarak Bandar Tun Abdul Razak ,26400
+33,300-MH14,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Pulau Sebang Hypermarket,1067.0,199101011136,,"Mydin Pulau Sebang Hypermarket PT 20 & 2053 Jalan Besar Pulau Sebang,78000 Alor Gajah,Melaka,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
+34,300-MH05,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Jengka Hypermarket,1077.0,199101011136,,"Mydin Jengka Hypermarket Lot 29972 Jalan Lintasan Semarak Bandar Tun Abdul Razak ,26400
 Jengka,Pahang,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-35,300-MH25,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Wholesale Teman Gopeng,1044,199101011136,,"Mydin Wholesale Teman Gopeng Rtc Perak Kawasan Perindustrian Gopeng 2 KM 16,31600
+35,300-MH25,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Wholesale Teman Gopeng,1044.0,199101011136,,"Mydin Wholesale Teman Gopeng Rtc Perak Kawasan Perindustrian Gopeng 2 KM 16,31600
 Gopeng,Perak,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-36,300-MH13,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Pelangi Indah Hypermarket,1055,199101011136,,"Mydin Pelangi Indah Hypermarket PTD 120470 Persiaran Pelangi IndahTaman Pelangi Indah,81800 Ulu
+36,300-MH13,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Pelangi Indah Hypermarket,1055.0,199101011136,,"Mydin Pelangi Indah Hypermarket PTD 120470 Persiaran Pelangi IndahTaman Pelangi Indah,81800 Ulu
 Tiram,Johor,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-37,300-MH03,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Gong Badak Hypermarket,1053,199101011136,,"Mydin Gong Badak Hypermarket Lot PT35511 Kg Banggol Jalan Gong Pak Damat,21300 Kuala
+37,300-MH03,MYDIN,MYDIN MOHAMED HOLDINGS BHD,MYDIN MOHAMED HOLDINGS BHD,Mydin Gong Badak Hypermarket,1053.0,199101011136,,"Mydin Gong Badak Hypermarket Lot PT35511 Kg Banggol Jalan Gong Pak Damat,21300 Kuala
 Terengganu,Terengganu,Malaysia",Net 60 days,OFF-001 OFFI,Manufacturing,,
-38,300-M027,MYDIN,TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,MYDIN MART ALAM SURIA,5535,200601008765,,"Mydin Mart Alam Suria 15-1 17-1 Jalan Dataran Suria 15/7/1 Seksyen 15,42300 Bandar Puncak Alam,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
+38,300-M027,MYDIN,MYDIN TRI SHAAS SDN BHD,TRI SHAAS SDN BHD,MYDIN MART ALAM SURIA,5535.0,200601008765,,"Mydin Mart Alam Suria 15-1 17-1 Jalan Dataran Suria 15/7/1 Seksyen 15,42300 Bandar Puncak Alam,Selangor,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
 39,300-TB04,TFP,TFP RETAIL SDN BHD,TFP RETAIL SDN BHD,TFP RETAIL SDN BHD @ BIG MALL OF MEDINI,,201301018031,"D-1-5, SUNWAY NEXIS,
 NO.1, JALAN PJU 5/1, KOTA DAMANSARA,
 47810 PETALING JAYA
@@ -385,7 +385,7 @@ Malaysia",Bill to Bill,CEN-003 THUR,Manufacturing,,
 SEKSYEN 35, ALAM IMPIAN,
 40470 SHAH ALAM
 SELANGOR",Net 60 days,CEN-001 AZIZ,Original,,
-78,300-U001,URBAN MARKETPLACE,Urban Retail Sdn Bhd,Urban Retail Sdn Bhd,Seksyen U13 Shah Alam,9999,,,"Lot LG-SM, Setia City Mall
+78,300-U001,URBAN MARKETPLACE,Urban Retail Sdn Bhd,Urban Retail Sdn Bhd,Seksyen U13 Shah Alam,9999.0,,,"Lot LG-SM, Setia City Mall
 7 Persiaran Setia Dagang
 Seksyen U13, Bandar Setia Alam
 40170 Shah Alam, Selangor
@@ -414,7 +414,7 @@ Tel: 603-55448888","NO. 2-8, SS 6/3
 PUSAT BANDAR KELANA JAYA
 47301 -
 Malaysia",Net 60 days,CEN-000 AZLA,Original,,
-82,300-L008,LOTUSS,LOTUSS STORES (MALAYSIA) SDN. BHD.,LOTUSS STORES (MALAYSIA) SDN. BHD.,"Lotus's Shah Alam DC - Tiong Nam Logistics Warehouse D (905)",,200001018812,"HEAD OFFICE,LEVEL 3,
+82,300-L008,LOTUSS,LOTUSS STORES (MALAYSIA) SDN. BHD.,LOTUSS STORES (MALAYSIA) SDN. BHD.,Lotus's Shah Alam DC - Tiong Nam Logistics Warehouse D (905),,200001018812,"HEAD OFFICE,LEVEL 3,
 No 3,Jalan 7A/62A,
 Bandar Menjalara,
 52200 Kuala Lumpur, Malaysia","Lot 204, Jalan Bukit Belimbing 26/38
@@ -424,7 +424,7 @@ Section 26
 Selangor
 Malaysia",Net 60 days,CEN-000 AZLA,Manufacturing,,
 83,300-SG01,Selection Groceries,Selections Groceries Sdn Bhd,Selections Groceries Sdn Bhd,"Pusat Perniagaan
-(G Village)",8888,,"No.01-03, Ground Floor, Pusat Perniagaan
+(G Village)",8888.0,,"No.01-03, Ground Floor, Pusat Perniagaan
 (G Village) No.35, Jalan Desa Pandan,
 Desa Pandan, 55100 Kuala Lumpur","No.01-03, Ground Floor, Pusat Perniagaan
 (G Village) No.35, Jalan Desa Pandan,
@@ -437,7 +437,7 @@ Desa Pandan, 55100 Kuala Lumpur",Net 45 days,CEN-001 AZIZ,Original,,
 50100 Kuala Lumpur, Malaysia.",Net 60 days,CEN-001 AZIZ,Original,,
 86,300-TM14,TUNAS MANJA (TMG),TUNAS MANJA SDN BHD,TUNAS MANJA SDN BHD,TUNAS MANJA SDN BHD (CAWANGAN HILL PARK),,166702T,,"5-15, JALAN PINANG 4/1,TINGKAT BAWAH BANDAR HILL PARK PUNCAK
 ALAM,42300BANDAR PUNCAK ALAM,SELANGORMALAYSIA",Net 45 days,CEN-001 AZIZ,Manufacturing,,
-87,300-0008,Sam Groceria,"SAM'S GROCERIA SDN BHD","SAM'S GROCERIA SDN BHD",NU Sentral Jalan Tun Sambanthan,4502,200501005382,,"Sams Groceria NU Sentral Lot No.1/48 Lower Ground Floor Nu sentral,Jalan Tun Sambanthan,50740 Kuala
+87,300-0008,Sam Groceria,SAM'S GROCERIA SDN BHD,SAM'S GROCERIA SDN BHD,NU Sentral Jalan Tun Sambanthan,4502.0,200501005382,,"Sams Groceria NU Sentral Lot No.1/48 Lower Ground Floor Nu sentral,Jalan Tun Sambanthan,50740 Kuala
 Lumpur,Kuala Lumpur,Malaysia",Net 60 days,CEN-001 AZIZ,Manufacturing,,
 88,300-T044,TUNAS MANJA (TMG),TUNAS MANJA SDN BHD,TUNAS MANJA SDN BHD,TUNAS MANJA SDN BHD (CAWANGAN ALAM BUDIMAN),,166702T,,"NO.9-19, GROUND FLOOR, JALAN PULAU LUMUT U10/68,ALAM BUDIMAN, SEKSYEN
 U10,40170SHAH ALAMSELANGORMALAYSIA",Net 45 days,CEN-001 AZIZ,Manufacturing,,

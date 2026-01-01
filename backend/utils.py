@@ -783,11 +783,20 @@ def parse_with_gemini(data, extra_instruction=""):
         - **Pagination:** If a single PO flows onto a second page (e.g. "Page 1 of 2"), combine the data into ONE document object.
         - **Mydin/Giant/Lotus:** These retailers often put different stores on different pages. TREAT THEM AS SEPARATE POs if they have different PO numbers or delivery addresses.
         
+        
         FIELDS TO EXTRACT:
         - 'retailer': **CRITICAL** - Extract the BUYER's company name (the supermarket/retailer purchasing from Tishas).
-            * Examples: "MYDIN", "GIANT", "LOTUS", "CS GROCER", "CHECKERS", "TUNAS MANJA"
-            * NEVER use "Tishas", "Tri Shaas", "Tishas Food Marketing", or "Tishas Food Manufacturing"
-            * Look for the company name in the "Bill To" or "Buyer" section
+            * The retailer is the company RECEIVING the goods, NOT the company SENDING them
+            * Look at the document structure: Tishas is usually at the TOP as "From" or "Vendor"
+            * The BUYER/RETAILER is usually in "Bill To" or "Ship To" section
+            * Examples of CORRECT retailer names: "MYDIN", "GIANT", "LOTUS", "CS GROCER", "CHECKERS", "TUNAS MANJA"
+            * Examples of WRONG retailer names (NEVER use these): 
+                - "TRI SHAAS SDN BHD" ❌
+                - "MYDIN TRI SHAAS SDN BHD" ❌
+                - "Tishas Food Marketing" ❌
+                - "Tishas Food Manufacturing" ❌
+                - Anything containing "Tishas" or "Tri Shaas" ❌
+            * If you see "MYDIN" in the Bill To section, extract "MYDIN" (not "MYDIN TRI SHAAS")
             * This should be the retailer's SHORT NAME (e.g., "MYDIN" not "MYDIN MOHAMED HOLDINGS BHD")
         - 'po_number': The unique PO number.
         - 'po_date': Date of the PO.

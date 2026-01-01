@@ -15,11 +15,13 @@ import { formatNumber, formatQuantity } from "@/lib/utils";
 
 interface HistoryTableProps {
     data: PODocument[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 type SortDirection = 'asc' | 'desc';
 
-export function HistoryTable({ data }: HistoryTableProps) {
+export function HistoryTable({ data, onRefresh, isRefreshing = false }: HistoryTableProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<keyof PODocument | null>(null);
@@ -91,11 +93,12 @@ export function HistoryTable({ data }: HistoryTableProps) {
                     />
                     <Button
                         variant="outline"
-                        onClick={() => window.location.reload()} // Quick refresh hack or pass refresh handler prop
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
                         title="Refresh"
                         className="gap-2"
                     >
-                        <RotateCw className="h-4 w-4" />
+                        <RotateCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                         Refresh Data
                     </Button>
                 </div>

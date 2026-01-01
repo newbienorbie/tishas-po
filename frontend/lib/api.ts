@@ -6,6 +6,101 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 console.log("API_BASE_URL:", API_BASE_URL);
 
+// Streaming upload with SSE
+export async function uploadFileStream(
+    file: File,
+    onPO: (po: PODocument, page: number, totalPages: number) => void,
+    onComplete: () => void,
+    onError: (error: string) => void
+): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/upload_stream`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+            throw new Error('No response body');
+        }
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.type === 'po') {
+                        onPO(data.data, data.page, data.total_pages);
+                    } else if (data.type === 'complete') {
+                        onComplete();
+                    } else if (data.type === 'error') {
+                        onError(data.message);
+                    }
+                }
+            }
+        }
+    } catch (error: any) {
+        onError(error.message || 'Upload failed');
+    }
+}
+
+// Batch processing types
+export interface BatchStatus {
+    status: 'processing' | 'complete' | 'error';
+    progress: {
+        current: number;
+        total: number;
+    };
+    pos: PODocument[];
+    error?: string;
+    page_errors?: Array<{ page: number; error: string }>;
+}
+
+// Batch upload - starts processing and returns batch ID
+export async function uploadFileBatch(file: File): Promise<{ batch_id: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/upload_batch`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Batch upload failed');
+    }
+
+    return await response.json();
+}
+
+// Get batch status - poll this to get incremental results
+export async function getBatchStatus(batchId: string): Promise<BatchStatus> {
+    const response = await fetch(`${API_BASE_URL}/batch_status/${batchId}`);
+
+    if (!response.ok) {
+        throw new Error('Failed to get batch status');
+    }
+
+    return await response.json();
+}
+
+// Original non-streaming upload (keep for fallback)
 export async function uploadFiles(files: File[]): Promise<PODocument[]> {
     const allDocs: PODocument[] = [];
 
@@ -13,9 +108,8 @@ export async function uploadFiles(files: File[]): Promise<PODocument[]> {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Create AbortController with 5 minute timeout for large files
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 
         try {
             const response = await fetch(`${API_BASE_URL}/upload`, {
@@ -27,7 +121,6 @@ export async function uploadFiles(files: File[]): Promise<PODocument[]> {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                // Try to extract error message from response
                 try {
                     const errorData = await response.json();
                     const errorMsg = errorData.detail || errorData.message || `Upload failed for ${file.name}`;
@@ -41,7 +134,6 @@ export async function uploadFiles(files: File[]): Promise<PODocument[]> {
                 allDocs.push(...data.documents);
             }
         } catch (error) {
-            // Re-throw the error so it can be caught by the caller
             throw error;
         }
     }

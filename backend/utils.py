@@ -11,7 +11,7 @@ from io import BytesIO
 from typing import Any
 
 from difflib import SequenceMatcher
-from google import genai
+import google.genai as genai
 import pandas as pd
 from google.cloud import storage
 from google.oauth2 import service_account
@@ -773,7 +773,9 @@ def parse_with_gemini(data, extra_instruction=""):
         1. SCAN EVERY SINGLE PAGE OF THE INPUT. 
         2. DO NOT STOP after finding the first Purchase Order. 
         3. If there are 10 pages and 10 POs, you must extract 10 separate documents.
-        4. "Tishas Food Marketing" is the VENDOR/SUPPLIER. Do NOT mistake it for the retailer.
+        4. **IMPORTANT**: "Tishas Food Marketing" / "Tishas Food Manufacturing" is the VENDOR/SUPPLIER (the seller). 
+           - The BUYER is the RETAILER (Mydin, Giant, Lotus, etc.) who is purchasing from Tishas.
+           - NEVER extract "Tishas" as the buyer_name. The buyer_name should be the retailer's legal entity name.
         
         EXTRACTION RULES:
         - **Identify Distinct POs:** A new PO usually starts with a new PO Number, a new Reference Number, or a new Retailer/Branch.
@@ -794,7 +796,11 @@ def parse_with_gemini(data, extra_instruction=""):
             * SAM'S Groceria: "Delivery by"
             * Super Seven: "PO valid for 2 weeks from date of issue" (calculate expiry as PO date + 14 days)
             * If field not found, return null
-        - 'buyer_name': The "Bill To" entity.
+        - 'buyer_name': **CRITICAL EXTRACTION LOGIC**:
+            1. First, search for keywords "Buyer:", "Agent:", "Buyer Name:", "Agent Name:" in the document
+            2. If found, extract the name that follows (e.g., "Buyer: QUSYAIRI" → extract "QUSYAIRI")
+            3. If NOT found, use the retailer's legal entity name from "Bill To" section
+            4. NEVER use "Tishas" as the buyer_name - Tishas is the vendor/supplier
         - 'branch_name': The "Ship To"/"Deliver To" specific store name.
         - 'items': ALL line items from the table.
         - 'qty': Quantity (number).

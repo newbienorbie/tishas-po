@@ -1,11 +1,14 @@
 import os
 import shutil
 import hashlib
+import uuid
+import threading
+import time
 from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -36,6 +39,10 @@ app.add_middleware(
 if not os.path.exists("po_storage"):
     os.makedirs("po_storage")
 app.mount("/files", StaticFiles(directory="po_storage"), name="files")
+
+# In-memory storage for batch processing
+batch_storage: Dict[str, Dict[str, Any]] = {}
+batch_lock = threading.Lock()
 
 # --- Pydantic Models for Input Validation ---
 
@@ -206,6 +213,262 @@ def check_po_number(po_number: str):
     exists = utils.check_po_number_exists(po_number)
     return {"exists": exists}
 
+def process_batch_file(batch_id: str, temp_filename: str, original_filename: str, file_hash: str, saved_path: str):
+    """Background task to process file page by page"""
+    try:
+        import pdfplumber
+        
+        with pdfplumber.open(temp_filename) as pdf:
+            total_pages = len(pdf.pages)
+            
+            # Update batch with total pages
+            with batch_lock:
+                batch_storage[batch_id]["total_pages"] = total_pages
+            
+            for i, page in enumerate(pdf.pages):
+                page_num = i + 1
+                
+                # Update current page
+                with batch_lock:
+                    batch_storage[batch_id]["current_page"] = page_num
+                
+                try:
+                    text = page.extract_text(x_tolerance=2) or ""
+                    
+                    if len(text.strip()) < 50:
+                        continue
+                    
+                    # Detect retailer
+                    t_page = text.upper()
+                    curr_retailer = "UNKNOWN"
+                    if "MYDIN" in t_page: curr_retailer = "MYDIN"
+                    elif "SELECTION" in t_page: curr_retailer = "SELECTION_GROCERIES"
+                    elif "PASARAYA" in t_page or "ANGKASA" in t_page: curr_retailer = "PASARAYA_ANGKASA"
+                    elif "TUNAS" in t_page or "MANJA" in t_page: curr_retailer = "TUNAS_MANJA"
+                    elif "ROSYAM" in t_page: curr_retailer = "ST_ROSYAM"
+                    elif "GLOBAL JAYA" in t_page: curr_retailer = "GLOBAL_JAYA"
+                    elif "GCH" in t_page or "GIANT" in t_page: curr_retailer = "GIANT"
+                    elif "CS GROCER" in t_page: curr_retailer = "CS_GROCER"
+                    elif "SUPER SEVEN" in t_page: curr_retailer = "SUPER_SEVEN"
+                    elif "SAM'S GROCERIA" in t_page or "CHECKERS" in t_page: curr_retailer = "CHECKERS_SAM"
+                    elif "LOTUSS" in t_page or "LOTUS" in t_page: curr_retailer = "LOTUS"
+                    elif "TFP" in t_page: curr_retailer = "TFP_GROUP"
+                    
+                    # Extract POs from this page
+                    page_results = utils.parse_with_gemini(text, utils.RETAILER_PROMPT_MAP.get(curr_retailer, ""))
+                    
+                    if page_results:
+                        for doc in page_results:
+                            doc = utils.enrich_po_data(doc, file_hash)
+                            doc = utils.clean_nan_values(doc)
+                            doc["file_path_url"] = saved_path
+                            doc["source_filename"] = original_filename
+                            
+                            po_number = doc.get("po_number")
+                            if po_number and utils.check_po_number_exists(po_number):
+                                doc["already_exists"] = True
+                                doc["duplicate_message"] = f"PO {po_number} already exists in database"
+                            else:
+                                doc["already_exists"] = False
+                            
+                            is_valid, error_msg = utils.validate_is_po(doc)
+                            if is_valid:
+                                # Add to batch results
+                                with batch_lock:
+                                    batch_storage[batch_id]["pos"].append(doc)
+                
+                except Exception as page_error:
+                    # Log page error but continue processing
+                    print(f"Error processing page {page_num}: {page_error}")
+                    with batch_lock:
+                        if "page_errors" not in batch_storage[batch_id]:
+                            batch_storage[batch_id]["page_errors"] = []
+                        batch_storage[batch_id]["page_errors"].append({
+                            "page": page_num,
+                            "error": str(page_error)
+                        })
+                    # Continue to next page
+                    continue
+        
+        # Mark as complete (even if some pages had errors)
+        with batch_lock:
+            batch_storage[batch_id]["status"] = "complete"
+            
+    except Exception as e:
+        # Only set error status if the entire file processing failed
+        with batch_lock:
+            batch_storage[batch_id]["status"] = "error"
+            batch_storage[batch_id]["error"] = str(e)
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+
+@app.post("/api/upload_batch")
+async def upload_batch(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    """Start batch processing and return batch ID"""
+    batch_id = str(uuid.uuid4())
+    temp_filename = f"temp_{batch_id}_{file.filename}"
+    original_filename = file.filename
+    
+    try:
+        # Save file
+        with open(temp_filename, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Calculate hash
+        with open(temp_filename, "rb") as f:
+            file_hash = hashlib.md5(f.read()).hexdigest()
+        
+        # Upload to storage
+        saved_path = utils.upload_to_gcs(temp_filename, original_filename)
+        
+        # Check file type
+        file_ext = os.path.splitext(original_filename)[1].lower()
+        if file_ext != ".pdf":
+            raise HTTPException(status_code=400, detail="Only PDF files supported for batch processing")
+        
+        # Initialize batch storage
+        with batch_lock:
+            batch_storage[batch_id] = {
+                "status": "processing",
+                "current_page": 0,
+                "total_pages": 0,
+                "pos": [],
+                "error": None,
+                "page_errors": []
+            }
+        
+        # Start background processing
+        thread = threading.Thread(
+            target=process_batch_file,
+            args=(batch_id, temp_filename, original_filename, file_hash, saved_path)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return {"batch_id": batch_id}
+        
+    except HTTPException as he:
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+        raise
+    except Exception as e:
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/batch_status/{batch_id}")
+def get_batch_status(batch_id: str):
+    """Get current status of batch processing"""
+    with batch_lock:
+        if batch_id not in batch_storage:
+            raise HTTPException(status_code=404, detail="Batch not found")
+        
+        batch_data = batch_storage[batch_id]
+        return {
+            "status": batch_data["status"],
+            "progress": {
+                "current": batch_data["current_page"],
+                "total": batch_data["total_pages"]
+            },
+            "pos": batch_data["pos"],
+            "error": batch_data.get("error"),
+            "page_errors": batch_data.get("page_errors", [])
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+import asyncio
+import json
+
+
+@app.post("/api/upload_stream")
+async def upload_file_stream(file: UploadFile = File(...)):
+    """Streaming endpoint that yields POs as they're extracted"""
+    temp_filename = f"temp_{file.filename}"
+    original_filename = file.filename
+    
+    async def event_generator():
+        try:
+            # Save file
+            with open(temp_filename, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            
+            with open(temp_filename, "rb") as f:
+                file_hash = hashlib.md5(f.read()).hexdigest()
+            
+            saved_path = utils.upload_to_gcs(temp_filename, original_filename)
+            file_ext = os.path.splitext(original_filename)[1].lower()
+            
+            if file_ext != ".pdf":
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Only PDF supported for streaming'})}\\n\\n"
+                return
+            
+            # Process PDF page by page
+            import pdfplumber
+            with pdfplumber.open(temp_filename) as pdf:
+                total_pages = len(pdf.pages)
+                
+                for i, page in enumerate(pdf.pages):
+                    page_num = i + 1
+                    text = page.extract_text(x_tolerance=2) or ""
+                    
+                    if len(text.strip()) < 50:
+                        continue
+                    
+                    # Detect retailer
+                    t_page = text.upper()
+                    curr_retailer = "UNKNOWN"
+                    if "MYDIN" in t_page: curr_retailer = "MYDIN"
+                    elif "SELECTION" in t_page: curr_retailer = "SELECTION_GROCERIES"
+                    elif "PASARAYA" in t_page or "ANGKASA" in t_page: curr_retailer = "PASARAYA_ANGKASA"
+                    elif "TUNAS" in t_page or "MANJA" in t_page: curr_retailer = "TUNAS_MANJA"
+                    elif "ROSYAM" in t_page: curr_retailer = "ST_ROSYAM"
+                    elif "GLOBAL JAYA" in t_page: curr_retailer = "GLOBAL_JAYA"
+                    elif "GCH" in t_page or "GIANT" in t_page: curr_retailer = "GIANT"
+                    elif "CS GROCER" in t_page: curr_retailer = "CS_GROCER"
+                    elif "SUPER SEVEN" in t_page: curr_retailer = "SUPER_SEVEN"
+                    elif "SAM'S GROCERIA" in t_page or "CHECKERS" in t_page: curr_retailer = "CHECKERS_SAM"
+                    elif "LOTUSS" in t_page or "LOTUS" in t_page: curr_retailer = "LOTUS"
+                    elif "TFP" in t_page: curr_retailer = "TFP_GROUP"
+                    
+                    # Extract POs
+                    page_results = utils.parse_with_gemini(text, utils.RETAILER_PROMPT_MAP.get(curr_retailer, ""))
+                    
+                    if page_results:
+                        for doc in page_results:
+                            doc = utils.enrich_po_data(doc, file_hash)
+                            doc = utils.clean_nan_values(doc)
+                            doc["file_path_url"] = saved_path
+                            doc["source_filename"] = original_filename
+                            
+                            po_number = doc.get("po_number")
+                            if po_number and utils.check_po_number_exists(po_number):
+                                doc["already_exists"] = True
+                                doc["duplicate_message"] = f"PO {po_number} already exists in database"
+                            else:
+                                doc["already_exists"] = False
+                            
+                            is_valid, error_msg = utils.validate_is_po(doc)
+                            if is_valid:
+                                yield f"data: {json.dumps({'type': 'po', 'data': doc, 'page': page_num, 'total_pages': total_pages})}\\n\\n"
+                                await asyncio.sleep(0)  # Allow other tasks to run
+                
+                yield f"data: {json.dumps({'type': 'complete'})}\\n\\n"
+                
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\\n\\n"
+        finally:
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        }
+    )

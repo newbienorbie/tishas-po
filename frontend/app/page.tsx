@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { uploadFiles, fetchHistory, saveAllPOs } from "@/lib/api";
+import { uploadFiles, uploadFileBatch, getBatchStatus, fetchHistory, saveAllPOs } from "@/lib/api";
 import { PODocument } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface FileWithStatus {
   status: 'pending' | 'processing' | 'completed' | 'saved' | 'error' | 'duplicate';
   doc?: PODocument;
   error?: string;
+  progress?: string;
 }
 
 export default function Home() {
@@ -53,6 +54,13 @@ export default function Home() {
     }
   }, [activeTab]);
 
+  const handleRefreshHistory = () => {
+    setIsLoadingHistory(true);
+    fetchHistory()
+      .then(setHistoryData)
+      .finally(() => setIsLoadingHistory(false));
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles: FileWithStatus[] = Array.from(e.target.files).map(file => ({
@@ -81,57 +89,99 @@ export default function Home() {
       // Update status to processing
       setFilesWithStatus(prev =>
         prev.map(f => f.file === fileWithStatus.file
-          ? { ...f, status: 'processing' as const }
+          ? { ...f, status: 'processing' as const, progress: `Starting upload...` }
           : f
         )
       );
 
       try {
-        const docs: PODocument[] = await uploadFiles([fileWithStatus.file]);
+        // Start batch processing
+        const { batch_id } = await uploadFileBatch(fileWithStatus.file);
 
-        // Critical: Check if file is still in the active list (wasn't cleared)
-        const isFileStillActive = filesRef.current.some(f => f.file === fileWithStatus.file);
-        if (!isFileStillActive) {
-          console.log(`File ${fileWithStatus.file.name} was cleared, skipping result.`);
-          continue;
-        }
+        // Track POs we've already added to avoid duplicates
+        const seenPoNumbers = new Set<string>();
 
-        if (docs.length > 0) {
-          // Process ALL documents (multi-PO support)
-          for (const doc of docs) {
-            // Check if already exists
-            if (doc.already_exists) {
-              toast.info(doc.duplicate_message || `${doc.po_number} already exists in database`);
-            } else {
-              // Add to processed docs
-              setProcessedDocs(prev => [...prev, doc]);
-              toast.success(`Successfully extracted PO ${doc.po_number || 'data'}`);
+        // Poll for results
+        const pollInterval = setInterval(async () => {
+          try {
+            const batchStatus = await getBatchStatus(batch_id);
+
+            // Check if file is still in the active list
+            const isFileStillActive = filesRef.current.some(f => f.file === fileWithStatus.file);
+            if (!isFileStillActive) {
+              clearInterval(pollInterval);
+              return;
             }
-          }
 
-          // Update file status to completed
-          setFilesWithStatus(prev =>
-            prev.map(f => f.file === fileWithStatus.file
-              ? { ...f, status: 'completed' as const, doc: docs[0] }
-              : f
-            )
-          );
-        }
+            // Update progress message
+            const { current, total } = batchStatus.progress;
+            if (total > 0) {
+              setFilesWithStatus(prev =>
+                prev.map(f => f.file === fileWithStatus.file
+                  ? { ...f, progress: `Processing page ${current}/${total}...` }
+                  : f
+                )
+              );
+            }
+
+            // Add new POs incrementally
+            for (const po of batchStatus.pos) {
+              const poNumber = po.po_number || '';
+              if (!seenPoNumbers.has(poNumber)) {
+                seenPoNumbers.add(poNumber);
+
+                // Check if already exists
+                if (po.already_exists) {
+                  toast.info(po.duplicate_message || `${po.po_number} already exists in database`);
+                } else {
+                  // Add to processed docs
+                  setProcessedDocs(prev => [...prev, po]);
+                  toast.success(`Extracted PO ${po.po_number || 'data'} from page ${current}`);
+                }
+              }
+            }
+
+            // Check if complete or error
+            if (batchStatus.status === 'complete') {
+              clearInterval(pollInterval);
+
+              setFilesWithStatus(prev =>
+                prev.map(f => f.file === fileWithStatus.file
+                  ? { ...f, status: 'completed' as const, progress: undefined }
+                  : f
+                )
+              );
+
+              // Show page errors if any
+              if (batchStatus.page_errors && batchStatus.page_errors.length > 0) {
+                toast.warning(`Completed with ${batchStatus.page_errors.length} page error(s)`);
+              }
+            } else if (batchStatus.status === 'error') {
+              clearInterval(pollInterval);
+
+              const errorMessage = batchStatus.error || 'Processing failed';
+              setFilesWithStatus(prev =>
+                prev.map(f => f.file === fileWithStatus.file
+                  ? { ...f, status: 'error' as const, error: errorMessage }
+                  : f
+                )
+              );
+              toast.error(`${fileWithStatus.file.name}: ${errorMessage}`);
+            }
+          } catch (pollError) {
+            console.error('Polling error:', pollError);
+            // Don't stop polling on transient errors
+          }
+        }, 1500); // Poll every 1.5 seconds
+
       } catch (error: any) {
         // Check if file is still active even on error
         const isFileStillActive = filesRef.current.some(f => f.file === fileWithStatus.file);
         if (!isFileStillActive) continue;
 
-        // Extract meaningful error message
         let errorMessage = "Error processing file";
         if (error.message) {
-          // Check if it's a specific error we want to show
-          if (error.message.includes('not a valid Purchase Order') ||
-            error.message.includes('Upload failed')) {
-            errorMessage = error.message.replace('Upload failed for ' + fileWithStatus.file.name + ': ', '');
-          } else {
-            errorMessage = error.message;
-          }
+          errorMessage = error.message;
         }
 
         setFilesWithStatus(prev =>
@@ -241,6 +291,18 @@ export default function Home() {
                       <div className="flex items-center gap-3 flex-1">
                         <div className="flex-1">
                           <p className="font-medium text-sm">{fileWithStatus.file.name}</p>
+                          {fileWithStatus.status === 'processing' && fileWithStatus.progress && (
+                            <p className="text-xs text-muted-foreground mt-1">{fileWithStatus.progress}</p>
+                          )}
+                          {fileWithStatus.status === 'completed' && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Extraction complete</p>
+                          )}
+                          {fileWithStatus.status === 'duplicate' && (
+                            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">⚠ {fileWithStatus.error}</p>
+                          )}
+                          {fileWithStatus.status === 'error' && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-1">✗ {fileWithStatus.error}</p>
+                          )}
                           {fileWithStatus.status === 'processing' && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -354,7 +416,11 @@ export default function Home() {
                 <p className="text-muted-foreground">Loading history from database...</p>
               </div>
             ) : (
-              <HistoryTable data={historyData} />
+              <HistoryTable
+                data={historyData}
+                onRefresh={handleRefreshHistory}
+                isRefreshing={isLoadingHistory}
+              />
             )}
           </TabsContent>
         </Tabs>

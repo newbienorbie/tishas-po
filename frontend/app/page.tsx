@@ -27,6 +27,7 @@ export default function Home() {
   const [historyData, setHistoryData] = useState<PODocument[]>([]);
   const [activeTab, setActiveTab] = useState("process");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Load last visited tab from localStorage on mount (client-side only)
   useEffect(() => {
@@ -241,12 +242,43 @@ export default function Home() {
     setProcessedDocs([]);
   };
 
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const newFiles: FileWithStatus[] = files.map(file => ({
+        file,
+        status: 'pending' as const,
+      }));
+      setFilesWithStatus(prev => [...prev, ...newFiles]);
+
+      // Process files immediately (same as click upload)
+      processNewFiles(newFiles);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex-1 container mx-auto py-10">
+      <div className="flex-1 container mx-auto py-10 px-4 md:px-6 lg:px-8">
         <Toaster />
         <div className="mb-8 text-center bg-gray-50 dark:bg-zinc-900 p-8 rounded-lg">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
             Tisha's PO Extractor
           </h1>
         </div>
@@ -260,14 +292,27 @@ export default function Home() {
           {/* TAB 1: PROCESS */}
           <TabsContent value="process" className="space-y-4">
             <label htmlFor="file-upload-main" className="cursor-pointer block">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-10 bg-gray-50 dark:bg-zinc-900/50 hover:bg-gray-100 dark:hover:bg-zinc-900/70 transition-colors">
-                <UploadCloud className="h-12 w-12 text-primary mb-4" />
-                <h3 className="text-xl font-bold mb-4">Upload Purchase Order Files</h3>
+              <div
+                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-10 transition-all ${isDragging
+                  ? 'border-primary bg-primary/10 scale-[1.02]'
+                  : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-zinc-900/50 hover:bg-gray-100 dark:hover:bg-zinc-900/70'
+                  }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <UploadCloud className={`h-12 w-12 mb-4 transition-colors ${isDragging ? 'text-primary' : 'text-primary'
+                  }`} />
+                <h3 className="text-xl font-bold mb-4">
+                  {isDragging ? 'Drop files here' : 'Upload Purchase Order Files'}
+                </h3>
                 <div className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-md hover:bg-primary/90 transition-colors shadow-lg pointer-events-none">
                   Choose Files
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  PDF, JPG, JPEG, or PNG files accepted
+                <p className="mt-4 text-sm text-muted-foreground text-center">
+                  {isDragging ? 'Release to upload' : 'Drag & drop files here or click to browse'}
+                  <br />
+                  <span className="text-xs">PDF, JPG, JPEG, or PNG files accepted</span>
                 </p>
               </div>
             </label>
@@ -427,13 +472,11 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t mt-auto">
+      <footer className="border-t mt-auto bg-gray-50 dark:bg-zinc-900/50">
         <div className="container mx-auto py-6">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <span>Powered by
-              <span className="font-semibold"> Kim Brothers Ent.</span>
-            </span>
-            <span>|</span>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-sm text-muted-foreground">
+            <span>Powered by <span className="font-semibold">Kim Brothers Ent.</span></span>
+            <span className="hidden md:inline">|</span>
             <a
               href="mailto:jobhunters.ai.pro@gmail.com"
               className="flex items-center gap-1 hover:text-primary transition-colors"

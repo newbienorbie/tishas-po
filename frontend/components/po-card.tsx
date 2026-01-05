@@ -19,7 +19,7 @@ interface POCardProps {
 
 export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
     const [doc, setDoc] = useState<PODocument>(initialDoc);
-    const [isItemsOpen, setIsItemsOpen] = useState(false);
+    const [isItemsOpen, setIsItemsOpen] = useState(true); // Changed to true - expanded by default
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
@@ -46,9 +46,9 @@ export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
     return (
         <Card className="mb-4 border-l-4 border-l-blue-500 shadow-sm">
             <CardHeader className="pb-2 bg-gray-50/50 dark:bg-zinc-900/50">
-                <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-1 flex-1">
-                        <div className="flex items-center gap-2">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
+                    <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -57,27 +57,59 @@ export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
                             >
                                 {isMinimized ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                             </Button>
-                            <CardTitle className="text-lg font-bold">
+                            <CardTitle className="text-lg font-bold break-words">
                                 {doc.po_number || "New PO"}
                             </CardTitle>
+                            {/* Trash button on mobile - next to PO number */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 md:hidden text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
+                                onClick={onRemove}
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
                             {doc.already_exists && (
-                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 gap-1">
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 gap-1 shrink-0">
                                     <AlertTriangle className="h-3 w-3" /> Duplicate
                                 </Badge>
                             )}
-                            <span className="text-sm font-normal text-muted-foreground">
-                                | {doc.retailer_name_standardized || doc.retailer_name || "Unknown Retailer"}
-                            </span>
                             {isSaved && (
-                                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <div className="flex items-center gap-1 text-green-600 dark:text-green-400 shrink-0">
                                     <CheckCircle2 className="h-4 w-4" />
                                     <span className="text-xs font-medium">SAVED</span>
                                 </div>
                             )}
                         </div>
-                        <p className="text-sm text-muted-foreground ml-8">{doc.source_filename}</p>
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 ml-0 md:ml-8">
+                            <span className="text-sm font-normal text-muted-foreground break-words">
+                                {doc.retailer_name_standardized || doc.retailer_name || "Unknown Retailer"}
+                            </span>
+                            {/* Filename as clickable link on mobile, plain text on desktop */}
+                            {doc.file_path_url ? (
+                                <>
+                                    <a
+                                        href={doc.file_path_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="md:hidden text-sm text-muted-foreground hover:underline break-all flex items-center gap-1"
+                                    >
+                                        <ExternalLink className="h-3 w-3 shrink-0" />
+                                        {doc.source_filename}
+                                    </a>
+                                    <span className="hidden md:inline text-sm text-muted-foreground break-all">
+                                        {doc.source_filename}
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-sm text-muted-foreground break-all">
+                                    {doc.source_filename}
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Desktop: View button and trash button */}
+                    <div className="hidden md:flex items-center gap-2 shrink-0">
                         {doc.file_path_url && (
                             <a href={doc.file_path_url} target="_blank" rel="noopener noreferrer">
                                 <Button variant="ghost" size="sm" className="h-8">
@@ -94,7 +126,7 @@ export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
             </CardHeader>
 
             {!isMinimized && (
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 px-3 md:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                         {/* Column 1: Retailer Info */}
                         <div className="space-y-2">

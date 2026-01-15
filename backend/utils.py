@@ -7,19 +7,18 @@ import re
 import shutil
 import sys
 from datetime import datetime, timedelta
+from difflib import SequenceMatcher
 from io import BytesIO
 from typing import Any
 
-from difflib import SequenceMatcher
 import google.genai as genai
 import pandas as pd
+from db_connection import get_db_connection
+from dotenv import load_dotenv
 from google.cloud import storage
 from google.oauth2 import service_account
 from pdf2image import convert_from_path
 from PIL import Image
-from dotenv import load_dotenv
-
-from db_connection import get_db_connection
 
 load_dotenv()
 
@@ -59,11 +58,11 @@ def get_gcs_client():
             info = json.loads(service_account_info)
             creds = service_account.Credentials.from_service_account_info(info)
             return storage.Client(credentials=creds, project=info.get("project_id"))
-        
+
         # Check for service account file path
         service_account_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         if service_account_path and os.path.exists(service_account_path):
-             return storage.Client.from_service_account_json(service_account_path)
+            return storage.Client.from_service_account_json(service_account_path)
 
         return None
     except Exception as e:
@@ -84,7 +83,22 @@ RETAILER_PROMPT_MAP = {
     "LOTUS": "This PO may be multi-page, ensure all items are extracted. | CRITICAL: Extract 'branch_name' from the line starting with 'STORE NAME:' (e.g., 'Lotus's Shah Alam DC...'). | Extract 'qty' as the NUMBER OF CASES and set the 'uom' to a descriptive string like 'case (X units each)' where X is the packing size.",
     "PASARAYA_ANGKASA": "Quantity must be calculated as packet count.",
     "ST_ROSYAM": "Refer to the text beside the retailer name for branches.",
-    "SOGO": "Quantity must be calculated as packet count.",
+    "SOGO": """
+    Quantity must be calculated as packet count.
+    SPECIAL EXTRACTION RULES FOR SOGO / KL DEPARTMENT STORE:
+
+    1. BRANCH CODE DETECTION (Crucial):
+       - The branch code is often labeled as "Branch" followed by a colon and the code It is placed above "Purchase Order No".
+       - It might appear split across lines like:
+         "Branch"
+         ": 100-JTAR"
+       - You MUST connect these lines.
+       - If you see "100-JTAR", extract "100-JTAR" as the branch_code.
+       - Ignore the "GCH RETAIL" header if this is actually a SOGO PO.
+
+    2. PO NUMBER:
+       - Look for "Purchase Order No" followed by the number (e.g., 200141393).
+    """,
     "SELECTION_GROCERIES": "Quantity must be calculated as packet count.",
     "SUPER_SEVEN": "Refer to the Address on the PO to know which branches. | Article Code is NOT present in this file, return null for article_code (do not use Barcode).",
     "PASARAYA_DARUSSALAM": "Refer to the text in parentheses () beside the retailer name for different branches.",
@@ -107,17 +121,17 @@ try:
     if db_url:
         if db_url.startswith("postgres://"):
             db_url = db_url.replace("postgres://", "postgresql://", 1)
-            
+
         engine = create_engine(db_url)
         # Verify connection
         with engine.connect() as connection:
-             RETAILERS_DF = pd.read_sql("SELECT * FROM retailers", connection)
+            RETAILERS_DF = pd.read_sql("SELECT * FROM retailers", connection)
     else:
         # Fallback to existing method
         conn = get_db_connection()
         RETAILERS_DF = pd.read_sql("SELECT * FROM retailers", conn)
         conn.close()
-    
+
     if RETAILERS_DF.empty:
         raise Exception("DB table empty")
 
@@ -131,13 +145,18 @@ if not RETAILERS_DF.empty:
     try:
         # Normalize columns
         if "debtor_code" in RETAILERS_DF.columns:
+
             def clean_debtor_code(val):
-                if pd.isna(val): return None
+                if pd.isna(val):
+                    return None
                 s = str(val).strip()
-                if s.lower() in ['nan', 'none', 'null', '']: return None
+                if s.lower() in ["nan", "none", "null", ""]:
+                    return None
                 return s
-            
-            RETAILERS_DF["debtor_code"] = RETAILERS_DF["debtor_code"].apply(clean_debtor_code)
+
+            RETAILERS_DF["debtor_code"] = RETAILERS_DF["debtor_code"].apply(
+                clean_debtor_code
+            )
 
         def clean_branch_code_val(val):
             if pd.isna(val) or str(val).strip() == "":
@@ -157,15 +176,18 @@ if not RETAILERS_DF.empty:
 
         # Ensure required columns exist logic could be added, but assuming schema match
         if "retailers_name" in RETAILERS_DF.columns:
-            RETAILERS_DF["clean_name"] = RETAILERS_DF["retailers_name"].apply(clean_text)
+            RETAILERS_DF["clean_name"] = RETAILERS_DF["retailers_name"].apply(
+                clean_text
+            )
         if "branch" in RETAILERS_DF.columns:
             RETAILERS_DF["clean_branch"] = RETAILERS_DF["branch"].apply(clean_text)
         if "retailers_group_name" in RETAILERS_DF.columns:
-            RETAILERS_DF["clean_group"] = RETAILERS_DF["retailers_group_name"].apply(clean_text)
-            
+            RETAILERS_DF["clean_group"] = RETAILERS_DF["retailers_group_name"].apply(
+                clean_text
+            )
+
     except Exception as e:
         print(f"Error normalizing retailer data: {e}")
-
 
 
 # ==========================================
@@ -260,26 +282,26 @@ def fetch_all_pos_from_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Remove DISTINCT to show all line items
         query = """
-            SELECT 
+            SELECT
                 debtor_code, retailer_name, branch_name, branch_code,
-                delivery_address, buyer_name, po_number, po_date, 
+                delivery_address, buyer_name, po_number, po_date,
                 delivery_date, expiry_date, currency, total_amount, tax_id,
                 article_code, barcode, article_description, qty, uom,
                 unit_price, line_total, file_storage_url, source_filename
-            FROM po_data 
-            ORDER BY po_number DESC 
+            FROM po_data
+            ORDER BY po_number DESC
             LIMIT 100
         """
-        
+
         cursor.execute(query)
         results = cursor.fetchall()
-        
+
         cursor.close()
         conn.close()
-        return results # Returns list of dicts directly due to RealDictCursor
+        return results  # Returns list of dicts directly due to RealDictCursor
     except Exception as e:
         print(f"DB Fetch Error: {e}")
         return []
@@ -293,7 +315,8 @@ def check_po_number_exists(po_number):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT po_number FROM po_data WHERE po_number = %s LIMIT 1", (str(po_number),)
+            "SELECT po_number FROM po_data WHERE po_number = %s LIMIT 1",
+            (str(po_number),),
         )
         result = cursor.fetchone()
         cursor.close()
@@ -311,27 +334,35 @@ def validate_is_po(doc):
     """
     if not doc:
         return False, "No data extracted from document"
-    
+
     # Check for critical PO fields
     has_retailer = doc.get("retailer") or doc.get("retailer_name")
     has_po_number = doc.get("po_number")
     has_items = doc.get("items") and len(doc.get("items", [])) > 0
-    
+
     # A valid PO should have at minimum: retailer info and line items
     # PO number is optional for some retailers (like PELANGI)
     if not has_retailer:
-        return False, "Document does not appear to be a Purchase Order - missing retailer information"
-    
+        return (
+            False,
+            "Document does not appear to be a Purchase Order - missing retailer information",
+        )
+
     if not has_items:
-        return False, "Document does not appear to be a Purchase Order - no line items found"
-    
+        return (
+            False,
+            "Document does not appear to be a Purchase Order - no line items found",
+        )
+
     # Check if document_type is explicitly NOT a PO
     doc_type = str(doc.get("document_type", "")).lower()
     if "invoice" in doc_type or "receipt" in doc_type or "packing" in doc_type:
-        return False, f"Document appears to be a {doc.get('document_type')} not a Purchase Order"
-    
-    return True, None
+        return (
+            False,
+            f"Document appears to be a {doc.get('document_type')} not a Purchase Order",
+        )
 
+    return True, None
 
 
 # ==========================================
@@ -425,7 +456,9 @@ def get_standard_retailer_info(
     elif "CS" in po_name_upper and "GROCER" in po_name_upper:
         potential_matches = RETAILERS_DF[
             RETAILERS_DF["clean_name"].str.contains("CSGROCER", na=False)
-            | RETAILERS_DF["clean_name"].str.contains("CS.*GROCER", na=False, regex=True)
+            | RETAILERS_DF["clean_name"].str.contains(
+                "CS.*GROCER", na=False, regex=True
+            )
         ]
     else:
         # Initial attempts for generic match
@@ -452,7 +485,7 @@ def get_standard_retailer_info(
         csv_address_raw = str(row["delivery_address"]).upper()
         csv_branch_clean = row["clean_branch"]
         csv_branch_raw = str(row.get("branch", "")).upper()
-        
+
         if "LOTUS" in po_name_upper and "(" in row["branch"]:
             branch_code_in_name = re.search(r"\((\d+)\)", row["branch"])
         # Check if extracted branch name is contained in the CSV branch field
@@ -464,8 +497,15 @@ def get_standard_retailer_info(
             elif csv_branch_clean in po_branch_name_clean:
                 score += 60
             # Partial substring match (if overlap is significant)
-            elif SequenceMatcher(None, po_branch_name_clean, csv_branch_clean).find_longest_match(0, len(po_branch_name_clean), 0, len(csv_branch_clean)).size > 6:
-                 score += 40
+            elif (
+                SequenceMatcher(None, po_branch_name_clean, csv_branch_clean)
+                .find_longest_match(
+                    0, len(po_branch_name_clean), 0, len(csv_branch_clean)
+                )
+                .size
+                > 6
+            ):
+                score += 40
 
         if "LOTUS" in po_name_upper and "(" in row["branch"]:
             branch_code_in_name = re.search(r"\((\d+)\)", row["branch"])
@@ -496,14 +536,23 @@ def get_standard_retailer_info(
                 score += 40
             elif ratio > 0.2:
                 score += 20
-        
+
         # Special boost for MYDIN if we find key location markers
         if "MYDIN" in po_name_upper:
             # Check for specific location keywords in both PO and CSV
             csv_branch_upper = str(row.get("branch", "")).upper()
-            
+
             # Boost score if key location words match
-            location_keywords = ["PUTRAJAYA", "SHAH", "ALAM", "KLANG", "SEREMBAN", "SUBANG", "JAYA", "KAJANG"]
+            location_keywords = [
+                "PUTRAJAYA",
+                "SHAH",
+                "ALAM",
+                "KLANG",
+                "SEREMBAN",
+                "SUBANG",
+                "JAYA",
+                "KAJANG",
+            ]
             for keyword in location_keywords:
                 if keyword in po_address_upper and keyword in csv_address_raw:
                     score += 40  # High score for address location match
@@ -511,7 +560,7 @@ def get_standard_retailer_info(
                 if keyword in po_branch_name_upper and keyword in csv_branch_upper:
                     score += 40  # High score for branch name location match
                     break
-        
+
         # Special boost for CS GROCER - match on location in branch name
         if "CS" in po_name_upper and "GROCER" in po_name_upper:
             csv_branch_upper = str(row.get("branch", "")).upper()
@@ -571,10 +620,10 @@ def enrich_po_data(po_data, file_hash=None):
     ) = get_standard_retailer_info(
         extracted_name, extracted_branch_addr, extracted_branch_name
     )
-    
+
     if debtor_code:
         po_data["debtor_code"] = debtor_code
-        
+
     if standard_name:
         po_data["retailer_name"] = standard_name
         po_data["retailer_name_standardized"] = standard_name
@@ -643,10 +692,7 @@ def save_to_db(doc):
 
         # Prevent duplicates: delete old version if exists
         if po_num:
-            cursor.execute(
-                "DELETE FROM po_data WHERE po_number = %s",
-                (po_num,)
-            )
+            cursor.execute("DELETE FROM po_data WHERE po_number = %s", (po_num,))
             conn.commit()
 
         insert_query = """
@@ -709,10 +755,28 @@ def save_to_db(doc):
             barcode_val = item.get("Barcode") or item.get("barcode")
 
             val = (
-                d_code, r_name, b_name, b_code, d_addr, buyer, po_num, p_date,
-                d_date, e_date, curr, tot_amt, tax,
-                a_code, barcode_val, a_desc, qty_val, uom_val,
-                price_val, total_val, f_url, source_fname,
+                d_code,
+                r_name,
+                b_name,
+                b_code,
+                d_addr,
+                buyer,
+                po_num,
+                p_date,
+                d_date,
+                e_date,
+                curr,
+                tot_amt,
+                tax,
+                a_code,
+                barcode_val,
+                a_desc,
+                qty_val,
+                uom_val,
+                price_val,
+                total_val,
+                f_url,
+                source_fname,
             )
             cursor.execute(insert_query, val)
 
@@ -768,29 +832,29 @@ def parse_with_gemini(data, extra_instruction=""):
 
     prompt_base = f"""
         You are an expert PO data extractor. The input contains multiple pages which may contain MULTIPLE DISTINCT Purchase Orders.
-        
+
         CRITICAL INSTRUCTION:
-        1. SCAN EVERY SINGLE PAGE OF THE INPUT. 
-        2. DO NOT STOP after finding the first Purchase Order. 
+        1. SCAN EVERY SINGLE PAGE OF THE INPUT.
+        2. DO NOT STOP after finding the first Purchase Order.
         3. If there are 10 pages and 10 POs, you must extract 10 separate documents.
-        4. **IMPORTANT**: "Tishas Food Marketing" / "Tishas Food Manufacturing" / "TRI SHAAS" is the VENDOR/SUPPLIER (the seller). 
+        4. **IMPORTANT**: "Tishas Food Marketing" / "Tishas Food Manufacturing" / "TRI SHAAS" is the VENDOR/SUPPLIER (the seller).
            - The BUYER is the RETAILER (Mydin, Giant, Lotus, etc.) who is purchasing from Tishas.
            - NEVER extract "Tishas" or "Tri Shaas" as the retailer or buyer_name.
            - The retailer should be the BUYER's company name (e.g., MYDIN, GIANT, LOTUS, CS GROCER).
-        
+
         EXTRACTION RULES:
         - **Identify Distinct POs:** A new PO usually starts with a new PO Number, a new Reference Number, or a new Retailer/Branch.
         - **Pagination:** If a single PO flows onto a second page (e.g. "Page 1 of 2"), combine the data into ONE document object.
         - **Mydin/Giant/Lotus:** These retailers often put different stores on different pages. TREAT THEM AS SEPARATE POs if they have different PO numbers or delivery addresses.
-        
-        
+
+
         FIELDS TO EXTRACT:
         - 'retailer': **CRITICAL** - Extract the BUYER's company name (the supermarket/retailer purchasing from Tishas).
             * The retailer is the company RECEIVING the goods, NOT the company SENDING them
             * Look at the document structure: Tishas is usually at the TOP as "From" or "Vendor"
             * The BUYER/RETAILER is usually in "Bill To" or "Ship To" section
             * Examples of CORRECT retailer names: "MYDIN", "GIANT", "LOTUS", "CS GROCER", "CHECKERS", "TUNAS MANJA"
-            * Examples of WRONG retailer names (NEVER use these): 
+            * Examples of WRONG retailer names (NEVER use these):
                 - "TRI SHAAS SDN BHD" ❌
                 - "MYDIN TRI SHAAS SDN BHD" ❌
                 - "Tishas Food Marketing" ❌
@@ -821,10 +885,10 @@ def parse_with_gemini(data, extra_instruction=""):
         - 'uom': Unit of Measure (e.g., "carton", "pcs"). Default to "unit" if unknown.
         - 'unit_price': Price per unit (number).
         - 'total_amount': Total PO value (number).
-        
+
         Return a JSON object with a "documents" list containing ALL extracted POs.
         {json_schema}
-        
+
         IMPORTANT RETAILER INSTRUCTION: {extra_instruction}
     """
 
@@ -842,19 +906,19 @@ def parse_with_gemini(data, extra_instruction=""):
         if not client:
             print("  !! [AI Error]: Gemini client not initialized")
             return None
-            
+
         response = client.models.generate_content(
-            model='gemini-2.0-flash-exp',
+            model="gemini-2.0-flash-exp",
             contents=parts,
             config=genai.types.GenerateContentConfig(
                 response_mime_type="application/json"
-            )
+            ),
         )
 
         clean_json = response.text.replace("```json", "").replace("```", "").strip()
         if not clean_json.startswith("{") and "{" in clean_json:
             clean_json = clean_json[clean_json.find("{") : clean_json.rfind("}") + 1]
-            
+
         # Fix trailing commas (common AI JSON error)
         clean_json = re.sub(r",\s*([\]}])", r"\1", clean_json)
 
@@ -882,34 +946,55 @@ def process_pdf(file_path, file_hash, source_filename):
     # 1. Validation: Check if "Tisha" exists in the PDF text
     try:
         import pdfplumber
+
         has_tisha = False
         with pdfplumber.open(file_path) as pdf:
             text_found = False
-            for page in pdf.pages[:3]: # Check first 3 pages
+            for page in pdf.pages[:3]:  # Check first 3 pages
                 text = page.extract_text()
                 if text:
                     text_found = True
                     text_lower = text.lower()
                     # Expanded keyword list for validation
                     keywords = [
-                        "tisha", "tishas", "tisha's", 
-                        "global jaya", "global food merchant",
-                        "tfp", "mydin", "giant", "lotus", "checkers", 
-                        "cs grocer", "super seven", "sogo", "aeon", "ramly mart", "pelangi", 
-                        "tunas manja", "pasaraya", "rosyam", "selection", "urban"
+                        "tisha",
+                        "tishas",
+                        "tisha's",
+                        "global jaya",
+                        "global food merchant",
+                        "tfp",
+                        "mydin",
+                        "giant",
+                        "lotus",
+                        "checkers",
+                        "cs grocer",
+                        "super seven",
+                        "sogo",
+                        "aeon",
+                        "ramly mart",
+                        "pelangi",
+                        "tunas manja",
+                        "pasaraya",
+                        "rosyam",
+                        "selection",
+                        "urban",
                     ]
                     if any(x in text_lower for x in keywords):
                         has_tisha = True
                         break
-            
+
             # If we found text but no keywords -> Fail
             # If we found NO text -> Pass (assume scanned/image-based PDF)
             if text_found and not has_tisha:
-                 raise ValueError(f"Upload failed for {source_filename}. Valid retailer keyword not found.")
+                raise ValueError(
+                    f"Upload failed for {source_filename}. Valid retailer keyword not found."
+                )
             elif not text_found:
-                 print(f"No text extracted from {source_filename}, assuming scanned document. Proceeding...")
-                 has_tisha = True # Allow to proceed
-            
+                print(
+                    f"No text extracted from {source_filename}, assuming scanned document. Proceeding..."
+                )
+                has_tisha = True  # Allow to proceed
+
     except ImportError:
         print("pdfplumber not installed, skipping keyword validation")
     except Exception as e:
@@ -918,48 +1003,70 @@ def process_pdf(file_path, file_hash, source_filename):
         print(f"Validation warning: {e}")
 
     raw_docs = []
-    
+
     # PER-PAGE EXTRACTION STRATEGY
     try:
         with pdfplumber.open(file_path) as pdf:
             total_pages = len(pdf.pages)
             print(f"Processing {total_pages} pages in {source_filename}...")
-            
+
             for i, page in enumerate(pdf.pages):
                 page_num = i + 1
                 text = page.extract_text(x_tolerance=2) or ""
-                
+
                 # If page has very little text, try OCR (fallback)
                 if len(text.strip()) < 50:
-                    print(f"Page {page_num} seems empty/scanned. Skipping text extraction for this page.")
+                    print(
+                        f"Page {page_num} seems empty/scanned. Skipping text extraction for this page."
+                    )
                     continue
-                    
+
                 # Identify Retailer for this specific page
                 t_page = text.upper()
                 curr_page_retailer = "UNKNOWN"
                 # Check specific retailers first, then generic ones
-                if "MYDIN" in t_page: curr_page_retailer = "MYDIN"
-                elif "SELECTION" in t_page: curr_page_retailer = "SELECTION_GROCERIES"
-                elif "PASARAYA" in t_page or "ANGKASA" in t_page: curr_page_retailer = "PASARAYA_ANGKASA"
-                elif "TUNAS" in t_page or "MANJA" in t_page: curr_page_retailer = "TUNAS_MANJA"
-                elif "ROSYAM" in t_page: curr_page_retailer = "ST_ROSYAM"
-                elif "GLOBAL JAYA" in t_page: curr_page_retailer = "GLOBAL_JAYA"
-                elif "GCH" in t_page or "GIANT" in t_page: curr_page_retailer = "GIANT"
-                elif "CS GROCER" in t_page: curr_page_retailer = "CS_GROCER"
-                elif "SUPER SEVEN" in t_page: curr_page_retailer = "SUPER_SEVEN"
-                elif "SAM'S GROCERIA" in t_page or "CHECKERS" in t_page: curr_page_retailer = "CHECKERS_SAM"
-                elif "LOTUSS" in t_page or "LOTUS" in t_page: curr_page_retailer = "LOTUS"
-                elif "TFP" in t_page: curr_page_retailer = "TFP_GROUP"
-                
-                print(f"Extracting Page {page_num}/{total_pages} (Detected: {curr_page_retailer})...")
-                
+                if "MYDIN" in t_page:
+                    curr_page_retailer = "MYDIN"
+                elif "SELECTION" in t_page:
+                    curr_page_retailer = "SELECTION_GROCERIES"
+                elif "PASARAYA" in t_page or "ANGKASA" in t_page:
+                    curr_page_retailer = "PASARAYA_ANGKASA"
+                elif "TUNAS" in t_page or "MANJA" in t_page:
+                    curr_page_retailer = "TUNAS_MANJA"
+                elif "ROSYAM" in t_page:
+                    curr_page_retailer = "ST_ROSYAM"
+                elif "GLOBAL JAYA" in t_page:
+                    curr_page_retailer = "GLOBAL_JAYA"
+                elif "GCH" in t_page or "GIANT" in t_page:
+                    curr_page_retailer = "GIANT"
+                elif "CS GROCER" in t_page:
+                    curr_page_retailer = "CS_GROCER"
+                elif "SUPER SEVEN" in t_page:
+                    curr_page_retailer = "SUPER_SEVEN"
+                elif "SOGO" in t_page or "KL DEPT" in t_page:
+                    curr_page_retailer = "SOGO"
+                elif "SAM'S GROCERIA" in t_page or "CHECKERS" in t_page:
+                    curr_page_retailer = "CHECKERS_SAM"
+                elif "LOTUSS" in t_page or "LOTUS" in t_page:
+                    curr_page_retailer = "LOTUS"
+                elif "TFP" in t_page:
+                    curr_page_retailer = "TFP_GROUP"
+
+                print(
+                    f"Extracting Page {page_num}/{total_pages} (Detected: {curr_page_retailer})..."
+                )
+
                 # Extract using Gemini for THIS PAGE ONLY
-                page_results = parse_with_gemini(text, RETAILER_PROMPT_MAP.get(curr_page_retailer, ""))
-                
+                page_results = parse_with_gemini(
+                    text, RETAILER_PROMPT_MAP.get(curr_page_retailer, "")
+                )
+
                 if page_results:
-                    print(f"  -> Found {len(page_results)} document(s) on page {page_num}")
+                    print(
+                        f"  -> Found {len(page_results)} document(s) on page {page_num}"
+                    )
                     for doc in page_results:
-                        doc["_page_num"] = page_num # Internal tracking
+                        doc["_page_num"] = page_num  # Internal tracking
                         raw_docs.append(doc)
 
     except Exception as e:
@@ -971,7 +1078,6 @@ def process_pdf(file_path, file_hash, source_filename):
         is_scanned = True
     else:
         is_scanned = False
-
 
     if is_scanned:
         try:
@@ -996,11 +1102,11 @@ def process_pdf(file_path, file_hash, source_filename):
     # MERGE LOGIC
     # CRITICAL: Use COMPOSITE KEY (PO Number + Retailer) to prevent merging different retailers
     merged_docs_map = {}
-    
+
     for doc in raw_docs:
         po_num = str(doc.get("po_number") or "").strip()
         retailer = str(doc.get("retailer") or "").strip().upper()
-        
+
         # Create composite key: "PO_NUMBER|RETAILER_NAME"
         # This ensures same PO number but different retailers = different entries
         if po_num and po_num.lower() not in ["null", "none", ""]:
@@ -1011,11 +1117,13 @@ def process_pdf(file_path, file_hash, source_filename):
                 # Find the last PO with matching retailer
                 matching_key = None
                 for key in reversed(list(merged_docs_map.keys())):
-                    existing_retailer = str(merged_docs_map[key].get("retailer") or "").strip().upper()
+                    existing_retailer = (
+                        str(merged_docs_map[key].get("retailer") or "").strip().upper()
+                    )
                     if existing_retailer == retailer or not retailer:
                         matching_key = key
                         break
-                
+
                 if matching_key:
                     # Merge with matching retailer
                     target_doc = merged_docs_map[matching_key]
@@ -1023,10 +1131,10 @@ def process_pdf(file_path, file_hash, source_filename):
                         target_doc["items"].extend(doc["items"])
                     print(f"  -> Merged continuation page into {matching_key}")
                     continue
-            
+
             # No match found - create new entry
             merge_key = f"NO_PO_{len(merged_docs_map)+1}|{retailer}"
-        
+
         if merge_key in merged_docs_map:
             # ONLY merge if it's the EXACT same key (same PO number + same retailer)
             # This handles multi-page POs, NOT different POs from same retailer
@@ -1046,8 +1154,9 @@ def process_pdf(file_path, file_hash, source_filename):
     final_results = []
     for doc in merged_docs_map.values():
         # Clean up internal keys
-        if "_page_num" in doc: del doc["_page_num"]
-        
+        if "_page_num" in doc:
+            del doc["_page_num"]
+
         doc = enrich_po_data(doc, file_hash)
         doc = clean_nan_values(doc)
         final_results.append(doc)
@@ -1058,11 +1167,11 @@ def process_image(file_path, file_hash, source_filename):
     """
     Uses Gemini 1.5 Flash to extract data from an image.
     """
-    # 1. Validation (OCR logic hard to implement strictly without OCR engine, 
-    # skipping or relying on Gemini later, but user asked for check. 
+    # 1. Validation (OCR logic hard to implement strictly without OCR engine,
+    # skipping or relying on Gemini later, but user asked for check.
     # For images, we might trust Gemini or skip check if text not easily accessible)
     # Let's skip explicit text check for raw images for now unless requested.
-    
+
     try:
         img = Image.open(file_path)
         mime = Image.MIME.get(img.format, "image/jpeg")

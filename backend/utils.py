@@ -84,21 +84,13 @@ RETAILER_PROMPT_MAP = {
     "PASARAYA_ANGKASA": "Quantity must be calculated as packet count.",
     "ST_ROSYAM": "Refer to the text beside the retailer name for branches.",
     "SOGO": """
-    Quantity must be calculated as packet count.
-    SPECIAL EXTRACTION RULES FOR SOGO / KL DEPARTMENT STORE:
-
-    1. BRANCH CODE DETECTION (Crucial):
-       - The branch code is often labeled as "Branch" followed by a colon and the code It is placed above "Purchase Order No".
-       - It might appear split across lines like:
-         "Branch"
-         ": 100-JTAR"
-       - You MUST connect these lines.
-       - If you see "100-JTAR", extract "100-JTAR" as the branch_code.
-       - Ignore the "GCH RETAIL" header if this is actually a SOGO PO.
-
-    2. PO NUMBER:
-       - Look for "Purchase Order No" followed by the number (e.g., 200141393).
-    """,
+    1. BRANCH CODE EXTRACTION (CRITICAL):
+       - Look for the field labeled "Branch".
+       - Extract the value immediately following the colon (e.g., "100-JTAR").
+       - It may appear as "Branch : 100-JTAR" or be split across lines.
+       - STRICTLY EXTRACT the code "100-JTAR" (or similar) into the 'branch_code' field. Do not include the colon.
+    2. QUANTITY: Calculate as packet count.
+""",
     "SELECTION_GROCERIES": "Quantity must be calculated as packet count.",
     "SUPER_SEVEN": "Refer to the Address on the PO to know which branches. | Article Code is NOT present in this file, return null for article_code (do not use Barcode).",
     "PASARAYA_DARUSSALAM": "Refer to the text in parentheses () beside the retailer name for different branches.",

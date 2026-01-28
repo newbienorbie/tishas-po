@@ -74,15 +74,22 @@ def get_gcs_client():
 # 1. RETAILER SPECIFIC PROMPTS
 # ==========================================
 RETAILER_PROMPT_MAP = {
-    "TFP_GROUP": "Refer to the Ship-to Address to know which branches. | Quantity using packet | Tax id is in after SST Registration No. at the right side, example: 'W10-1808-32000353'.",
-    "MYDIN": "Refer to the Address on the PO to know which branches.",
-    "CHECKERS_SAM": "Refer to the Delivery Address to know which branches. Extract UOM from U/M column. Example: 'KTK (36)' should be written as 'ktk (36 units each)'",
-    "TUNAS MANJA": "Refer to the text in parentheses () beside the retailer name for different branches.",
-    "GIANT": "Look for 'Store Code' or 'Site Code' near the address. | 'branch_name' should be the specific facility name (e.g., 'KAJANG FRESH DISTRIBUTION CENTRE'). | CRITICAL: Extract 'qty' from Total Order Qty and set the 'uom' to a descriptive string like 'case (X units each)' where X is from Case Qty.",
-    "CS_GROCER": "Refer to top of the address block to know which branches.",
-    "LOTUS": "This PO may be multi-page, ensure all items are extracted. | CRITICAL: Extract 'branch_name' from the line starting with 'STORE NAME:' (e.g., 'Lotus's Shah Alam DC...'). | Extract 'qty' as the NUMBER OF CASES and set the 'uom' to a descriptive string like 'case (X units each)' where X is the packing size.",
-    "PASARAYA_ANGKASA": "Quantity must be calculated as packet count.",
-    "ST_ROSYAM": "Refer to the text beside the retailer name for branches.",
+    "TFP_GROUP": "Refer to the Ship-to Address to know which branches. | Quantity using packet | Tax id is in after SST Registration No. at the right side, example: 'W10-1808-32000353'. | BILLING ADDRESS: Look for 'Bill To' or 'Invoice To' section - if not found, use the delivery address.",
+    "MYDIN": "Refer to the Address on the PO to know which branches. | BILLING ADDRESS: Copy the delivery address if no separate billing address is shown.",
+    "CHECKERS_SAM": "Refer to the Delivery Address to know which branches. Extract UOM from U/M column. Example: 'KTK (36)' should be written as 'ktk (36 units each)' | BILLING ADDRESS: Copy delivery address if no separate 'Bill To' section.",
+    "TUNAS MANJA": "Refer to the text in parentheses () beside the retailer name for different branches. | BILLING ADDRESS: Copy delivery address if no separate billing address section.",
+    "GIANT": "Look for 'Store Code' or 'Site Code' near the address. | 'branch_name' should be the specific facility name (e.g., 'KAJANG FRESH DISTRIBUTION CENTRE'). | CRITICAL: Extract 'qty' from Total Order Qty and set the 'uom' to a descriptive string like 'case (X units each)' where X is from Case Qty. | DELIVERY ADDRESS: Use the address labeled 'Delivery Address:' - this is the store location. | BILLING ADDRESS: Use the GCH RETAIL address at the TOP of the PO (for example Mezzanine Floor, Giant Hypermarket Shah Alam Stadium area) - this is the corporate office.",
+    "CS_GROCER": "Refer to top of the address block to know which branches. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "LOTUS": """This PO may be multi-page. Return EXACTLY ONE document per page - do not split items into multiple documents.
+| ARTICLE CODE FORMAT: Article codes are 9-digit numbers like 405695985. They appear in the leftmost column of the items table. Do NOT confuse with description codes like 167721652_SP20.
+| CRITICAL FOR MULTI-PAGE: Continuation pages may show items WITHOUT column headers. Still extract article_code (9 digits in left column), barcode (UPC format), description, qty, uom, unit_price, and total for each item row.
+| CRITICAL: Extract 'branch_name' from the line starting with 'STORE NAME:' (e.g., 'Lotus's Shah Alam DC...').
+| Extract 'qty' as the NUMBER OF CASES and set the 'uom' to a descriptive string like 'case (X units each)' where X is the packing size.
+| TOTAL AMOUNT CRITICAL: Look at the BOTTOM of the document AFTER all line items. Find 'TOTAL PURCHASE AMT' and extract that NUMBER (e.g., 3,100.56). This is NOT the sum of items - it's explicitly labeled at the bottom.
+| BILLING ADDRESS: Extract the 'BILL TO:' section which contains HEAD OFFICE address (e.g., 'HEAD OFFICE, LEVEL 3, No 3 Jalan 7A/62A, Bandar Menjalara, 52200 Kuala Lumpur, Malaysia').
+| DELIVERY ADDRESS: Extract the 'SHIP TO:' section (e.g., 'Lot 204, Jalan Bukit Belimbing 26/38...').""",
+    "PASARAYA_ANGKASA": "Quantity must be calculated as packet count. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "ST_ROSYAM": "Refer to the text beside the retailer name for branches. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
     "SOGO": """
     1. BRANCH CODE EXTRACTION (CRITICAL):
        - Look for the field labeled "Branch".
@@ -90,15 +97,20 @@ RETAILER_PROMPT_MAP = {
        - It may appear as "Branch : 100-JTAR" or be split across lines.
        - STRICTLY EXTRACT the code "100-JTAR" (or similar) into the 'branch_code' field. Do not include the colon.
     2. QUANTITY: Calculate as packet count.
+    3. BILLING ADDRESS: Copy delivery address if no separate billing section.
 """,
-    "SELECTION_GROCERIES": "Quantity must be calculated as packet count.",
-    "SUPER_SEVEN": "Refer to the Address on the PO to know which branches. | Article Code is NOT present in this file, return null for article_code (do not use Barcode).",
-    "PASARAYA_DARUSSALAM": "Refer to the text in parentheses () beside the retailer name for different branches.",
-    "URBAN_MARKETPLACE": "Refer to top of the address block to know which branches.",
-    "GLOBAL_JAYA": "NO Barcode is expected for this retailer.",
-    "RAMLY_MART": "NO Barcode is expected for this retailer.",
-    "PELANGI": "NO PO number for this retailer. Always leave it as blank, even if 'one' or 'zero' is detected.",
-    "UNKNOWN": "",
+    "SELECTION_GROCERIES": "Quantity must be calculated as packet count. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "SUPER_SEVEN": "Refer to the Address on the PO to know which branches. | Article Code is NOT present in this file, return null for article_code (do not use Barcode). | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "PASARAYA_DARUSSALAM": """OVERRIDE DEFAULT: For branch_name, DO NOT use delivery address.
+| 'branch_name' MUST be extracted from the 'Purchase Order Issued by' header box at TOP LEFT of the document.
+| Example: If you see 'PASARAYA DARUSSALAM SDN BHD (PDS 3)', then branch_name = 'PASARAYA DARUSSALAM SDN BHD (PDS 3)'.
+| DELIVERY ADDRESS: Extract from 'Deliver To' - only the street part like 'T-00-U.06 JALAN P9E/1, PRESINT 9, 62250 PUTRAJAYA'.
+| BILLING ADDRESS: Same as delivery address.""",
+    "URBAN_MARKETPLACE": "Refer to top of the address block to know which branches. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "GLOBAL_JAYA": "NO Barcode is expected for this retailer. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "RAMLY_MART": "NO Barcode is expected for this retailer. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "PELANGI": "NO PO number for this retailer. Always leave it as blank, even if 'one' or 'zero' is detected. | BILLING ADDRESS: Copy delivery address if no separate billing section.",
+    "UNKNOWN": "BILLING ADDRESS: If only one address is shown on the document, use it as BOTH delivery_address and billing_address.",
 }
 
 # --- Load Retailer CSV ---
@@ -279,7 +291,7 @@ def fetch_all_pos_from_db():
         query = """
             SELECT
                 debtor_code, retailer_name, branch_name, branch_code,
-                delivery_address, buyer_name, po_number, po_date,
+                delivery_address, billing_address, buyer_name, po_number, po_date,
                 delivery_date, expiry_date, currency, total_amount, tax_id,
                 article_code, barcode, article_description, qty, uom,
                 unit_price, line_total, file_storage_url, source_filename
@@ -296,6 +308,49 @@ def fetch_all_pos_from_db():
         return results  # Returns list of dicts directly due to RealDictCursor
     except Exception as e:
         print(f"DB Fetch Error: {e}")
+        return []
+
+
+def fetch_pos_by_date_range(start_date=None, end_date=None):
+    """Fetch POs filtered by date range. Supports single date or range."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT
+                debtor_code, retailer_name, branch_name, branch_code,
+                delivery_address, billing_address, buyer_name, po_number, po_date,
+                delivery_date, expiry_date, currency, total_amount, tax_id,
+                article_code, barcode, article_description, qty, uom,
+                unit_price, line_total, file_storage_url, source_filename
+            FROM po_data
+            WHERE 1=1
+        """
+        params = []
+
+        if start_date:
+            query += " AND po_date >= %s"
+            params.append(start_date)
+        
+        if end_date:
+            query += " AND po_date <= %s"
+            params.append(end_date)
+        elif start_date and not end_date:
+            # If only start_date provided, filter for that exact date
+            query += " AND po_date <= %s"
+            params.append(start_date)
+
+        query += " ORDER BY po_date DESC, po_number DESC"
+
+        cursor.execute(query, tuple(params) if params else None)
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+        return results
+    except Exception as e:
+        print(f"DB Fetch by Date Error: {e}")
         return []
 
 
@@ -406,17 +461,19 @@ def upload_to_gcs(local_file_path, original_filename):
         blob = bucket.blob(blob_name)
 
         # 4. Upload if it doesn't exist
-        if not blob.exists():
+        already_existed = blob.exists()
+        if not already_existed:
             print(f"Uploading: {blob_name}")
             blob.upload_from_filename(local_file_path)
         else:
-            print(f"File already exists at: {blob_name}")
+            print(f"File already exists in cloud storage: {blob_name}")
 
-        return blob.public_url
+        return blob.public_url, already_existed
 
     except Exception as e:
         print(f"GCS Upload Error: {e}")
-        return save_local_copy(local_file_path, original_filename)
+        local_url = save_local_copy(local_file_path, original_filename)
+        return local_url, False
 
 
 # ==========================================
@@ -576,13 +633,20 @@ def get_standard_retailer_info(
         min_threshold = 10
 
     if max_score < min_threshold or best_match is None:
-        return extracted_name, None, None, extracted_address, None, 0
+        return extracted_name, None, None, extracted_address, None, None, 0
 
     code = best_match["debtor_code"]
     final_debtor_code = str(code) if pd.notnull(code) else None
     csv_branch_code = (
         str(best_match.get("branch_code"))
         if pd.notnull(best_match.get("branch_code"))
+        else None
+    )
+    
+    # Get billing_address from DB (may be empty)
+    csv_billing_address = (
+        str(best_match.get("billing_address"))
+        if pd.notnull(best_match.get("billing_address")) and best_match.get("billing_address")
         else None
     )
 
@@ -592,6 +656,7 @@ def get_standard_retailer_info(
         csv_branch_code,
         best_match["delivery_address"],
         best_match["branch"],
+        csv_billing_address,
         final_score,
     )
 
@@ -601,6 +666,7 @@ def enrich_po_data(po_data, file_hash=None):
     extracted_branch_addr = po_data.get("delivery_address")
     extracted_branch_name = po_data.get("branch_name")
     extracted_buyer_name_raw = po_data.get("buyer_name")
+    extracted_billing_addr = po_data.get("billing_address")
 
     (
         standard_name,
@@ -608,36 +674,50 @@ def enrich_po_data(po_data, file_hash=None):
         csv_branch_code,
         official_address,
         standard_branch_name,
+        official_billing_address,
         reliability_score,
     ) = get_standard_retailer_info(
         extracted_name, extracted_branch_addr, extracted_branch_name
     )
 
-    if debtor_code:
-        po_data["debtor_code"] = debtor_code
+    # CONFIDENCE THRESHOLD: Only use database values if we have a confident match
+    # Score >= 50 means strong branch name/address match
+    # Otherwise, keep extracted values and don't force DB values
+    CONFIDENCE_THRESHOLD = 50
+    is_confident_match = reliability_score >= CONFIDENCE_THRESHOLD
 
-    if standard_name:
-        po_data["retailer_name"] = standard_name
-        po_data["retailer_name_standardized"] = standard_name
+    if is_confident_match:
+        # We have a confident match - use database values for enrichment
+        if debtor_code:
+            po_data["debtor_code"] = debtor_code
+        if csv_branch_code:
+            po_data["branch_code"] = csv_branch_code
+        if standard_name:
+            po_data["retailer_name"] = standard_name
+            po_data["retailer_name_standardized"] = standard_name
+        if standard_branch_name:
+            po_data["branch_name"] = standard_branch_name
+        # For confident matches, use database address (has proper word spacing)
+        if official_address:
+            po_data["delivery_address"] = official_address
+        # Use billing_address from database if available
+        if official_billing_address:
+            po_data["billing_address"] = official_billing_address
     else:
+        # No confident match - use only extracted values, leave DB fields empty
         po_data["retailer_name"] = extracted_name
         po_data["retailer_name_standardized"] = extracted_name
-
-    if standard_branch_name:
-        po_data["branch_name"] = standard_branch_name
-    else:
         if extracted_branch_name:
             po_data["branch_name"] = extracted_branch_name
-        elif extracted_branch_addr:
-            po_data["branch_name"] = extracted_branch_addr
+        # debtor_code and branch_code remain empty if not extracted
 
-    if csv_branch_code:
-        po_data["branch_code"] = csv_branch_code
-
-    if official_address:
-        po_data["delivery_address"] = official_address
-    elif not po_data.get("delivery_address"):
+    # If no delivery_address set yet (low confidence or no DB match), use extracted
+    if not po_data.get("delivery_address") and extracted_branch_addr:
         po_data["delivery_address"] = extracted_branch_addr
+    
+    # If no billing_address set yet, use extracted billing address
+    if not po_data.get("billing_address") and extracted_billing_addr:
+        po_data["billing_address"] = extracted_billing_addr
 
     po_data["reliability_score"] = reliability_score
     po_data["file_hash"] = file_hash
@@ -690,11 +770,11 @@ def save_to_db(doc):
         insert_query = """
             INSERT INTO po_data (
                 debtor_code, retailer_name, branch_name, branch_code,
-                delivery_address, buyer_name, po_number, po_date,
+                delivery_address, billing_address, buyer_name, po_number, po_date,
                 delivery_date, expiry_date, currency, total_amount, tax_id,
                 article_code, barcode, article_description, qty, uom,
                 unit_price, line_total, file_storage_url, source_filename
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         items = doc.get("items", [])
@@ -703,6 +783,7 @@ def save_to_db(doc):
         b_name = doc.get("branch_name") or doc.get("branch_name_standardized")
         b_code = doc.get("branch_code")
         d_addr = doc.get("delivery_address") or doc.get("delivery_address_standardized")
+        bill_addr = doc.get("billing_address")
         buyer = doc.get("buyer_name")
         p_date = parse_date(doc.get("po_date"))
         d_date = parse_date(doc.get("delivery_date"))
@@ -752,6 +833,7 @@ def save_to_db(doc):
                 b_name,
                 b_code,
                 d_addr,
+                bill_addr,
                 buyer,
                 po_num,
                 p_date,
@@ -802,7 +884,8 @@ def parse_with_gemini(data, extra_instruction=""):
                     "currency": "CURRENCY_CODE",
                     "total_amount": NUMBER,
                     "buyer_name": "BUYER_NAME_LEGAL_ENTITY",
-                    "delivery_address": "FULL_DELIVERY_ADDRESS",
+                    "delivery_address": "FULL_DELIVERY_ADDRESS (Ship-To)",
+                    "billing_address": "FULL_BILLING_ADDRESS (Bill-To) or null if same as delivery",
                     "branch_name": "EXTRACTED_STORE_NAME",
                     "branch_code": "STORE_CODE",
                     "tax_id": "TAX_ID",
@@ -871,7 +954,16 @@ def parse_with_gemini(data, extra_instruction=""):
             2. If found, extract the name that follows (e.g., "Buyer: QUSYAIRI" → extract "QUSYAIRI")
             3. If NOT found, use the retailer's legal entity name from "Bill To" section
             4. NEVER use "Tishas" or "Tri Shaas" as the buyer_name - Tishas is the vendor/supplier
-        - 'branch_name': The "Ship To"/"Deliver To" specific store name.
+        - 'delivery_address': **CRITICAL - THIS IS WHERE GOODS ARE SHIPPED**:
+            * Look for labels: "Delivery Address:", "Ship To:", "Deliver To:", "Store Address:"
+            * This is the STORE/WAREHOUSE location where goods will be delivered
+        - 'billing_address': **CRITICAL - THIS IS THE CORPORATE/INVOICE ADDRESS**:
+            * Look for labels: "Bill To:", "Invoice To:", or the address at the TOP of the PO (header area)
+            * This is usually the retailer's HEAD OFFICE or corporate address
+            * If explicitly labeled "Delivery Address" - this is NOT the billing address
+            * IMPORTANT: NEVER use the seller's address (contains Tishas, KAWASAN PERINDUSTRIAN NILAI 7, or BLOCK A KILANG A03 KOMPLEKS INKUBATOR TEKNOLOGI MAKANA) as billing address
+            * If billing not found separately, copy the delivery_address
+        - 'branch_name': The store name from the delivery location.
         - 'items': ALL line items from the table.
         - 'qty': Quantity (number).
         - 'uom': Unit of Measure (e.g., "carton", "pcs"). Default to "unit" if unknown.
@@ -894,36 +986,174 @@ def parse_with_gemini(data, extra_instruction=""):
 
     parts.insert(0, prompt)
 
+    # List of models to try in order (newest stable first)
+    GEMINI_MODELS = [
+        "gemini-2.0-flash",
+        "gemini-1.5-flash", 
+        "gemini-1.5-pro",
+    ]
+    
     try:
         if not client:
             print("  !! [AI Error]: Gemini client not initialized")
             return None
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=parts,
-            config=genai.types.GenerateContentConfig(
-                response_mime_type="application/json"
-            ),
-        )
+        last_error = None
+        for model_name in GEMINI_MODELS:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=parts,
+                    config=genai.types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    ),
+                )
+                # Success - parse response
+                clean_json = response.text.replace("```json", "").replace("```", "").strip()
+                if not clean_json.startswith("{") and "{" in clean_json:
+                    clean_json = clean_json[clean_json.find("{") : clean_json.rfind("}") + 1]
 
-        clean_json = response.text.replace("```json", "").replace("```", "").strip()
-        if not clean_json.startswith("{") and "{" in clean_json:
-            clean_json = clean_json[clean_json.find("{") : clean_json.rfind("}") + 1]
+                # Fix trailing commas (common AI JSON error)
+                clean_json = re.sub(r",\s*([\]}])", r"\1", clean_json)
 
-        # Fix trailing commas (common AI JSON error)
-        clean_json = re.sub(r",\s*([\]}])", r"\1", clean_json)
-
-        data = json.loads(clean_json)
-        extracted = data.get("documents", [])
-        for doc in extracted:
-            if not doc.get("currency"):
-                doc["currency"] = "MYR"
-        return extracted
+                data = json.loads(clean_json)
+                extracted = data.get("documents", [])
+                for doc in extracted:
+                    if not doc.get("currency"):
+                        doc["currency"] = "MYR"
+                return extracted
+                
+            except Exception as model_error:
+                error_str = str(model_error)
+                # Check if it's a model not found error
+                if "404" in error_str or "NOT_FOUND" in error_str or "not found" in error_str.lower():
+                    print(f"  !! [Model Deprecated]: {model_name} is no longer available, trying next...")
+                    last_error = model_error
+                    continue
+                else:
+                    # Different error - don't try other models
+                    raise model_error
+        
+        # All models failed
+        print(f"  !! [AI Error]: All models failed. Last error: {last_error}")
+        print(f"  !! [Action Required]: Update GEMINI_MODELS list in utils.py with current models")
+        return None
 
     except Exception as e:
         print(f"  !! [AI Error]: {e}")
         return None
+
+
+def normalize_address_spacing(text: str) -> str:
+    """
+    Fix addresses with missing spaces (common in OCR-ed Lotus POs).
+    Examples:
+    - 'LOTUSSSTORES(MALAYSIA)SDN.BHD.' -> 'LOTUSS STORES (MALAYSIA) SDN.BHD.'
+    - 'HEADOFFICE,LEVEL3' -> 'HEAD OFFICE, LEVEL3'
+    - 'BandarMenjalara' -> 'Bandar Menjalara'
+    """
+    if not text:
+        return text
+    
+    import re
+    
+    result = text
+    
+    # Common compound words that should have spaces
+    spacing_fixes = [
+        # Company names
+        (r'LOTUSSSTORES', 'LOTUSS STORES'),
+        (r'LOTUSS\s*STORES', 'LOTUSS STORES'),
+        # Business suffixes
+        (r'\(MALAYSIA\)', ' (MALAYSIA) '),
+        (r'SDN\.?BHD\.?', ' SDN.BHD.'),
+        (r'SDN\s*\.\s*BHD', 'SDN.BHD'),
+        # Registration patterns
+        (r'RegNo\.', 'Reg No.'),
+        (r'\(RegNo', '(Reg No'),
+        # Common location patterns
+        (r'HEADOFFICE', 'HEAD OFFICE'),
+        (r'BandarMenjalara', 'Bandar Menjalara'),
+        (r'KualaLumpur', 'Kuala Lumpur'),
+        (r'ShahAlam', 'Shah Alam'),
+        (r'PetaJ?lingJaya', 'Petaling Jaya'),
+        (r'JohorBahru', 'Johor Bahru'),
+        (r'KotaKinabalu', 'Kota Kinabalu'),
+        # Add space after comma if missing
+        (r',([A-Za-z])', r', \1'),
+        # Add space before postcode if missing
+        (r'(\d{5})([A-Za-z])', r'\1 \2'),
+        (r'([A-Za-z])(\d{5})', r'\1 \2'),
+    ]
+    
+    for pattern, replacement in spacing_fixes:
+        result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+    
+    # Clean up multiple spaces
+    result = re.sub(r'\s+', ' ', result)
+    
+    return result.strip()
+
+
+def fix_billing_address(doc: dict) -> dict:
+    """
+    Fix billing_address:
+    1. Normalize spacing in both addresses
+    2. If billing_address is null/empty, copy from delivery_address
+    3. If billing_address contains seller info (Tishas, Tri Shaas, etc.), use delivery_address instead
+    NOTE: Do NOT overwrite a valid billing address that was set from the database
+    """
+    delivery = doc.get("delivery_address", "") or ""
+    billing = doc.get("billing_address", "") or ""
+    
+    # Normalize spacing in both addresses
+    delivery = normalize_address_spacing(delivery)
+    billing = normalize_address_spacing(billing)
+    
+    # Update delivery with normalized version
+    doc["delivery_address"] = delivery
+    
+    # Keywords that indicate seller/vendor address (should not be billing address)
+    seller_keywords = [
+        # Company names
+        "tishas food",
+        "tisha's food",
+        "tishas food marketing",
+        "tishas food manufacturing",
+        "tri shaas",
+        "trishaas",
+        # Nilai location
+        "jalan nilai 7/18",
+        "kawasan perindustrian nilai",
+        "71800 nilai",
+        # INTEM/Kepong location
+        "kilang a03",
+        "komplek inkubator teknologi makanan mara",
+        "kompleks inkubator teknologi makana mara",  # alternate spelling
+        "intem",
+        "kip 2",
+        "kawasan perindustrian kepong",
+        "52200 kuala lumpur",
+        # Generic seller indicators
+        "tel no: 60139825818",
+        "fax no: 60139825818",
+    ]
+    
+    # Check if billing looks like seller address
+    billing_lower = billing.lower()
+    is_seller_address = any(keyword in billing_lower for keyword in seller_keywords)
+    
+    # ONLY copy delivery to billing if:
+    # 1. Billing is empty/whitespace, OR
+    # 2. Billing contains seller keywords (wrong address)
+    # Do NOT overwrite if billing has valid content
+    if not billing.strip() or is_seller_address:
+        doc["billing_address"] = delivery
+    else:
+        # Keep existing billing address, just normalize it
+        doc["billing_address"] = billing
+    
+    return doc
 
 
 # ==========================================
@@ -1058,8 +1288,12 @@ def process_pdf(file_path, file_hash, source_filename):
                         f"  -> Found {len(page_results)} document(s) on page {page_num}"
                     )
                     for doc in page_results:
+                        # DEBUG: Log what was extracted from this page
+                        print(f"      DEBUG Page {page_num}: PO={doc.get('po_number')}, items={len(doc.get('items', []))}, total={doc.get('total_amount')}")
                         doc["_page_num"] = page_num  # Internal tracking
                         raw_docs.append(doc)
+                else:
+                    print(f"  !! No results from Gemini for page {page_num}")
 
     except Exception as e:
         print(f"Error reading PDF: {e}")
@@ -1133,8 +1367,26 @@ def process_pdf(file_path, file_hash, source_filename):
             target = merged_docs_map[merge_key]
             if doc.get("items"):
                 target["items"].extend(doc["items"])
-            # Update missing fields
+            
+            # CRITICAL: For total_amount, use the non-zero value from continuation pages
+            # The total usually appears at the bottom of the LAST page
+            new_total = doc.get("total_amount")
+            if new_total:
+                try:
+                    new_total_float = float(new_total) if isinstance(new_total, str) else new_total
+                    current_total = target.get("total_amount", 0)
+                    current_total_float = float(current_total) if isinstance(current_total, str) else (current_total or 0)
+                    # Use the new total if it's greater than current (the real total usually appears in later pages)
+                    if new_total_float > current_total_float:
+                        target["total_amount"] = new_total_float
+                        print(f"    -> Updated total_amount to {new_total_float}")
+                except (ValueError, TypeError):
+                    pass
+            
+            # Update missing fields (skip total_amount as handled above)
             for k, v in doc.items():
+                if k == "total_amount":
+                    continue  # Already handled above
                 if not target.get(k) and v:
                     target[k] = v
             print(f"  -> Merged continuation page into: {merge_key}")
@@ -1150,6 +1402,7 @@ def process_pdf(file_path, file_hash, source_filename):
             del doc["_page_num"]
 
         doc = enrich_po_data(doc, file_hash)
+        doc = fix_billing_address(doc)
         doc = clean_nan_values(doc)
         final_results.append(doc)
     return final_results
@@ -1178,6 +1431,7 @@ def process_image(file_path, file_hash, source_filename):
             final_results = []
             for doc in raw_docs:
                 doc = enrich_po_data(doc, file_hash)
+                doc = fix_billing_address(doc)
                 doc = clean_nan_values(doc)
                 final_results.append(doc)
             return final_results

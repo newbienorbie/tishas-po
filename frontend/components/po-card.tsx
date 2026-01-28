@@ -1,4 +1,4 @@
-import { PODocument } from "@/lib/types";
+import { PODocument, POItem } from "@/lib/types";
 import { savePO } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LineItemsEditor } from "./line-items-editor";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, ExternalLink, Save, CheckCircle2, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react";
@@ -15,17 +15,67 @@ interface POCardProps {
     doc: PODocument;
     onSaved: () => void;
     onRemove: () => void;
+    onDocChange?: (doc: PODocument) => void;  // NEW: notify parent of changes
 }
 
-export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
+// Helper function to calculate line items sum
+function calculateItemsSum(items: POItem[] = []): number {
+    return items.reduce((sum, item) => {
+        const itemTotal = item.total_price || item.total || 0;
+        return sum + (typeof itemTotal === 'number' ? itemTotal : parseFloat(itemTotal) || 0);
+    }, 0);
+}
+
+// Helper function to check if amounts match (with tolerance) or if total is missing
+function checkAmountMismatch(items: POItem[] = [], totalAmount: number | string | undefined): { is_flagged: boolean, flag_reason: string | undefined } {
+    const itemsSum = calculateItemsSum(items);
+    const total = typeof totalAmount === 'number' ? totalAmount : parseFloat(String(totalAmount)) || 0;
+
+    // Flag if total amount is missing or zero
+    if (total === 0 || totalAmount === null || totalAmount === undefined || totalAmount === '') {
+        return {
+            is_flagged: true,
+            flag_reason: 'Total amount is missing or zero'
+        };
+    }
+
+    if (items.length === 0) {
+        return { is_flagged: false, flag_reason: undefined };
+    }
+
+    const tolerance = 1.0; // RM1 tolerance
+    const difference = Math.abs(itemsSum - total);
+
+    if (difference >= tolerance) {
+        return {
+            is_flagged: true,
+            flag_reason: `Line items sum (${itemsSum.toFixed(2)}) differs from total amount (${total.toFixed(2)}) by ${difference.toFixed(2)}`
+        };
+    }
+    return { is_flagged: false, flag_reason: undefined };
+}
+
+export function POCard({ doc: initialDoc, onSaved, onRemove, onDocChange }: POCardProps) {
     const [doc, setDoc] = useState<PODocument>(initialDoc);
     const [isItemsOpen, setIsItemsOpen] = useState(true); // Changed to true - expanded by default
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
 
+    // Recalculate flagging whenever total_amount or items change
+    useEffect(() => {
+        const { is_flagged, flag_reason } = checkAmountMismatch(doc.items, doc.total_amount);
+        if (doc.is_flagged !== is_flagged || doc.flag_reason !== flag_reason) {
+            const updatedDoc = { ...doc, is_flagged, flag_reason };
+            setDoc(updatedDoc);
+            onDocChange?.(updatedDoc);
+        }
+    }, [doc.total_amount, doc.items]);
+
     const handleChange = (field: string, value: any) => {
-        setDoc((prev) => ({ ...prev, [field]: value }));
+        const updatedDoc = { ...doc, [field]: value };
+        setDoc(updatedDoc);
+        onDocChange?.(updatedDoc);
     };
 
     const handleSave = async () => {
@@ -47,16 +97,14 @@ export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
         <Card className="mb-4 border-l-4 border-l-blue-500 shadow-sm">
             <CardHeader className="pb-2 bg-gray-50/50 dark:bg-zinc-900/50">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
-                    <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
+                    <div
+                        className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => setIsMinimized(!isMinimized)}
+                    >
                         <div className="flex items-center gap-2 flex-wrap">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 shrink-0"
-                                onClick={() => setIsMinimized(!isMinimized)}
-                            >
+                            <div className="h-6 w-6 shrink-0 flex items-center justify-center">
                                 {isMinimized ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                            </Button>
+                            </div>
                             <CardTitle className="text-lg font-bold break-words">
                                 {doc.po_number || "New PO"}
                             </CardTitle>
@@ -158,7 +206,11 @@ export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
                             </div>
                             <div>
                                 <Label className="text-xs text-muted-foreground">Delivery Address</Label>
-                                <Textarea value={doc.delivery_address || ""} onChange={e => handleChange("delivery_address", e.target.value)} className="min-h-[80px] text-xs resize-y" />
+                                <Textarea value={doc.delivery_address || ""} onChange={e => handleChange("delivery_address", e.target.value)} className="min-h-[60px] text-xs resize-y" />
+                            </div>
+                            <div>
+                                <Label className="text-xs text-muted-foreground">Billing Address</Label>
+                                <Textarea value={doc.billing_address || ""} onChange={e => handleChange("billing_address", e.target.value)} className="min-h-[60px] text-xs resize-y" placeholder="Same as delivery if not specified" />
                             </div>
                             <div>
                                 <Label className="text-xs text-muted-foreground">Tax ID</Label>
@@ -185,6 +237,12 @@ export function POCard({ doc: initialDoc, onSaved, onRemove }: POCardProps) {
                                 <Label className="text-xs text-muted-foreground">Total Amount</Label>
                                 <Input value={doc.total_amount || ""} onChange={e => handleChange("total_amount", e.target.value)} className="h-8 font-bold" />
                             </div>
+                            {doc.is_flagged && (
+                                <div className="flex items-start gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded text-orange-700 dark:text-orange-400 text-xs">
+                                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                    <span>{doc.flag_reason}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Column 4: Actions */}

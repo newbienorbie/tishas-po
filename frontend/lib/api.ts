@@ -69,6 +69,8 @@ export interface BatchStatus {
     pos: PODocument[];
     error?: string;
     page_errors?: Array<{ page: number; error: string }>;
+    storage_existed?: boolean;
+    storage_url?: string;
 }
 
 // Batch upload - starts processing and returns batch ID
@@ -219,4 +221,130 @@ export async function fetchHistory(): Promise<PODocument[]> {
         console.error("History fetch error:", error);
         return [];
     }
+}
+
+export async function exportCSV(startDate?: string, endDate?: string): Promise<void> {
+    try {
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+
+        const url = `${API_BASE_URL}/export_csv${params.toString() ? '?' + params.toString() : ''}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error('Export failed');
+        }
+
+        // Get the blob
+        const blob = await response.blob();
+
+        // Create download link
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+
+        // Get filename from response headers or generate default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'po_export.csv';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename=(.+)/);
+            if (match) filename = match[1];
+        }
+
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+        console.error("CSV export error:", error);
+        throw error;
+    }
+}
+
+export function generateGoogleSheetsUrl(data: PODocument[]): void {
+    // This function is deprecated - use exportToGoogleSheets instead
+    // Keeping for backward compatibility
+    const url = `https://docs.google.com/spreadsheets/create`;
+    window.open(url, '_blank');
+}
+
+// ==========================================
+// GOOGLE SHEETS OAUTH API
+// ==========================================
+
+const GOOGLE_SESSION_KEY = 'google_sheets_session_id';
+
+export async function initiateGoogleAuth(): Promise<string> {
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const response = await fetch(`${API_BASE_URL}/google/auth/initiate?redirect_uri=${encodeURIComponent(redirectUri)}`);
+
+    if (!response.ok) {
+        throw new Error('Failed to initiate Google authentication');
+    }
+
+    const data = await response.json();
+    return data.auth_url;
+}
+
+export async function handleGoogleCallback(code: string, state: string): Promise<string> {
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const response = await fetch(
+        `${API_BASE_URL}/google/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(redirectUri)}`
+    );
+
+    if (!response.ok) {
+        throw new Error('Google authentication failed');
+    }
+
+    const data = await response.json();
+
+    // Store session ID in localStorage
+    if (data.session_id) {
+        localStorage.setItem(GOOGLE_SESSION_KEY, data.session_id);
+    }
+
+    return data.session_id;
+}
+
+export async function checkGoogleAuthStatus(): Promise<boolean> {
+    const sessionId = localStorage.getItem(GOOGLE_SESSION_KEY);
+    if (!sessionId) return false;
+
+    const response = await fetch(`${API_BASE_URL}/google/auth/status?session_id=${sessionId}`);
+    const data = await response.json();
+
+    return data.authenticated;
+}
+
+export async function exportToGoogleSheets(startDate?: string, endDate?: string, viewMode: 'po_level' | 'item_level' = 'item_level'): Promise<string> {
+    const sessionId = localStorage.getItem(GOOGLE_SESSION_KEY);
+
+    if (!sessionId) {
+        throw new Error('NOT_AUTHENTICATED');
+    }
+
+    const params = new URLSearchParams({ session_id: sessionId });
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    params.append('view_mode', viewMode);
+
+    const response = await fetch(`${API_BASE_URL}/google/sheets/export?${params.toString()}`, {
+        method: 'POST'
+    });
+
+    if (response.status === 401) {
+        // Clear invalid session
+        localStorage.removeItem(GOOGLE_SESSION_KEY);
+        throw new Error('NOT_AUTHENTICATED');
+    }
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Export failed');
+    }
+
+    const data = await response.json();
+    return data.spreadsheet_url;
 }

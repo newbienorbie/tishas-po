@@ -21,6 +21,7 @@ export interface PODocument {
     total_amount?: number | string;
     buyer_name?: string;
     delivery_address?: string;
+    billing_address?: string;  // NEW: Billing address
     branch_name?: string;
     branch_code?: string;
     debtor_code?: string;
@@ -32,6 +33,8 @@ export interface PODocument {
     duplicate_message?: string;
     items?: POItem[];
     status?: string;
+    is_flagged?: boolean;  // NEW: Flag for amount mismatch
+    flag_reason?: string;  // NEW: Reason for flagging
     [key: string]: any;
 }
 

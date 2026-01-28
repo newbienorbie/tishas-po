@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { POCard as POCardComponent } from "@/components/po-card";
 import { HistoryTable } from "@/components/history-table";
 import { Toaster } from "@/components/ui/sonner";
-import { Loader2, UploadCloud, X, Save, Mail } from "lucide-react";
+import { Loader2, UploadCloud, X, Save, Mail, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber, formatQuantity } from "@/lib/utils";
 
@@ -28,6 +28,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("process");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track when component is mounted (client-side)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load last visited tab from localStorage on mount (client-side only)
   useEffect(() => {
@@ -106,6 +112,18 @@ export default function Home() {
         const pollInterval = setInterval(async () => {
           try {
             const batchStatus = await getBatchStatus(batch_id);
+
+            // Show message if file already existed in storage (only once)
+            if (batchStatus.storage_existed && !seenPoNumbers.has('__storage_msg__')) {
+              seenPoNumbers.add('__storage_msg__');
+              toast.info(`File already exists in cloud storage`, {
+                duration: 5000,
+                action: batchStatus.storage_url ? {
+                  label: 'View',
+                  onClick: () => window.open(batchStatus.storage_url, '_blank')
+                } : undefined
+              });
+            }
 
             // Check if file is still in the active list
             const isFileStillActive = filesRef.current.some(f => f.file === fileWithStatus.file);
@@ -277,15 +295,22 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <div className="flex-1 container mx-auto py-10 px-4 md:px-6 lg:px-8">
         <Toaster />
-        <div className="mb-8 text-center bg-gray-50 dark:bg-zinc-900 p-8 rounded-lg">
-          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+        <div className="mb-8 text-center bg-gray-50 dark:bg-zinc-900 p-4 md:p-8 rounded-lg">
+          <h1 className="text-xl md:text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
             Tisha's PO Extractor
           </h1>
         </div>
 
-        <Tabs defaultValue="process" value={activeTab} onValueChange={setActiveTab} className="space-y-3">
+        <Tabs defaultValue="process" value={isMounted ? activeTab : undefined} onValueChange={setActiveTab} className="space-y-3">
           <TabsList className="grid w-full grid-cols-2 h-14">
-            <TabsTrigger value="process" className="text-md font-semibold">Process New POs</TabsTrigger>
+            <TabsTrigger value="process" className="text-md font-semibold">
+              Process New POs
+              {isMounted && processedDocs.filter(d => d.is_flagged).length > 0 && (
+                <span className="ml-2 bg-orange-500 text-white text-xs rounded-full h-5 w-5 inline-flex items-center justify-center">
+                  ⚠
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="history" className="text-md font-semibold">Database History</TabsTrigger>
           </TabsList>
 
@@ -432,15 +457,43 @@ export default function Home() {
             {/* Show processed documents for editing */}
             {processedDocs.length > 0 && (
               <div className="mt-8">
+                {/* Warning banner for flagged POs */}
+                {processedDocs.filter(d => d.is_flagged).length > 0 && (
+                  <div className="flex items-start gap-2 p-4 mb-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                    <div className="text-sm text-orange-700 dark:text-orange-300">
+                      <p className="font-semibold mb-1">{processedDocs.filter(d => d.is_flagged).length} PO(s) flagged - line items sum doesn't match total amount:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {processedDocs.filter(d => d.is_flagged).map((doc, i) => (
+                          <a
+                            key={i}
+                            href={`#po-${doc.po_number || i}`}
+                            className="underline hover:text-orange-900 dark:hover:text-orange-200 font-medium"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              document.getElementById(`po-${doc.po_number || processedDocs.indexOf(doc)}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }}
+                          >
+                            {doc.po_number || `PO #${i + 1}`}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <h3 className="text-2xl font-bold mb-4">Extracted Results ({processedDocs.length})</h3>
                 <div className="space-y-8">
                   {processedDocs.map((doc, idx) => (
-                    <POCardComponent
-                      key={idx}
-                      doc={doc}
-                      onSaved={() => removeDoc(idx)}
-                      onRemove={() => removeDoc(idx)}
-                    />
+                    <div key={doc.po_number || idx} id={`po-${doc.po_number || idx}`}>
+                      <POCardComponent
+                        doc={doc}
+                        onSaved={() => removeDoc(idx)}
+                        onRemove={() => removeDoc(idx)}
+                        onDocChange={(updatedDoc) => {
+                          setProcessedDocs(prev => prev.map((d, i) => i === idx ? updatedDoc : d));
+                        }}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>

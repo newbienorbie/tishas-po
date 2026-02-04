@@ -278,23 +278,25 @@ export function HistoryTable({ data, onRefresh, isRefreshing = false }: HistoryT
                 </div>
 
                 {/* Date Filters */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                     <span className="text-sm text-muted-foreground">Filter by date:</span>
-                    <Input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-[140px] h-9"
-                        placeholder="Start Date"
-                    />
-                    <span className="text-muted-foreground">to</span>
-                    <Input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-[140px] h-9"
-                        placeholder="End Date"
-                    />
+                    <div className="flex items-center gap-2">
+                        <Input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-[140px] h-9"
+                            placeholder="dd/mm/yyyy"
+                        />
+                        <span className="text-muted-foreground">to</span>
+                        <Input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-[140px] h-9"
+                            placeholder="dd/mm/yyyy"
+                        />
+                    </div>
                 </div>
 
                 {/* Export Buttons */}
@@ -307,7 +309,7 @@ export function HistoryTable({ data, onRefresh, isRefreshing = false }: HistoryT
                         className="gap-1"
                     >
                         <Download className="h-4 w-4" />
-                        <span className="hidden sm:inline">Export CSV</span>
+                        Export CSV
                     </Button>
                     <Button
                         variant="outline"
@@ -321,24 +323,13 @@ export function HistoryTable({ data, onRefresh, isRefreshing = false }: HistoryT
                         ) : (
                             <FileSpreadsheet className="h-4 w-4" />
                         )}
-                        <span className="hidden sm:inline">
-                            {isGSheetsExporting ? "Exporting..." : "Open in GSheets"}
-                        </span>
+                        {isGSheetsExporting ? "Exporting..." : "Open in GSheets"}
                     </Button>
                 </div>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="block md:hidden">
-                {currentData.length > 0 ? (
-                    currentData.map((doc, idx) => <MobileCard key={idx} doc={doc} />)
-                ) : (
-                    <div className="text-center py-10 text-muted-foreground">No records found.</div>
-                )}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden md:block rounded-md border overflow-x-auto">
+            {/* Table View - works for both mobile (scrollable) and desktop */}
+            <div className="rounded-md border overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -430,7 +421,7 @@ export function HistoryTable({ data, onRefresh, isRefreshing = false }: HistoryT
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={viewMode === 'item_level' ? 15 : 9} className="text-left h-24 text-muted-foreground">
+                                <TableCell colSpan={viewMode === 'item_level' ? 17 : 12} className="text-left h-24 text-muted-foreground">
                                     No records found.
                                 </TableCell>
                             </TableRow>
